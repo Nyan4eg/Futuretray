@@ -10,6 +10,8 @@ public static class Launcher
     {
         try
         {
+            // Запуск может идти из неактивного окна (трея) — разрешаем новой программе выйти на передний план.
+            Native.AllowSetForegroundWindow(Native.ASFW_ANY);
             var psi = new ProcessStartInfo { UseShellExecute = true };
             switch (item.Kind)
             {

@@ -25,6 +25,12 @@ public sealed class GroupTilesView : ContentControl
 
     public bool IsPreview { get; set; }
 
+    /// <summary>Для трея: все плитки в один ряд (Horizontal) или столбец (Vertical); null — сетка.</summary>
+    public Orientation? Line { get; set; }
+
+    /// <summary>В трее плитки не забирают фокус клавиатуры.</summary>
+    public bool TilesFocusable { get; set; } = true;
+
     /// <summary>Запуск элемента; второй аргумент — «не закрывать окно» (Ctrl/средняя кнопка).</summary>
     public event Action<LaunchItem, bool>? ItemInvoked;
     public event Action<LaunchItem, Button>? ItemMenuRequested;
@@ -79,7 +85,12 @@ public sealed class GroupTilesView : ContentControl
         if (_group == null) return;
 
         var g = _group;
-        _grid.Columns = ColumnsFor(g);
+        _grid.Columns = Line switch
+        {
+            Orientation.Horizontal => Math.Max(g.Items.Count, 1),
+            Orientation.Vertical => 1,
+            _ => ColumnsFor(g),
+        };
 
         if (g.Items.Count == 0)
         {
@@ -138,6 +149,7 @@ public sealed class GroupTilesView : ContentControl
         if (!labels) tile.ToolTip = index < 9 ? $"{item.Name}  ·  {index + 1}" : item.Name;
         AutomationName(tile, item.Name);
 
+        if (!TilesFocusable) tile.Focusable = false;
         if (IsPreview)
         {
             tile.Focusable = false;

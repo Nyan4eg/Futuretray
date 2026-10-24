@@ -43,6 +43,19 @@ public sealed class EnumBoolConverter : IValueConverter
         value is true && parameter != null ? Enum.Parse(targetType, parameter.ToString()!) : Binding.DoNothing;
 }
 
+/// <summary>Visible, когда значение enum совпадает с параметром (Invert — наоборот).</summary>
+public sealed class EnumVisibilityConverter : IValueConverter
+{
+    public bool Invert { get; set; }
+
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture) =>
+        (value != null && string.Equals(value.ToString(), parameter?.ToString(), StringComparison.OrdinalIgnoreCase)) ^ Invert
+            ? Visibility.Visible
+            : Visibility.Collapsed;
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => Binding.DoNothing;
+}
+
 public sealed class NullToCollapsedConverter : IValueConverter
 {
     public bool Invert { get; set; }

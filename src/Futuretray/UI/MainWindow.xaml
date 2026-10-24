@@ -396,6 +396,131 @@
                             </StackPanel>
                         </Border>
 
+                        <!-- Трей на рабочем столе -->
+                        <Border Style="{StaticResource Card}">
+                            <StackPanel>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Margin="0,0,16,0">
+                                        <TextBlock Text="Трей на рабочем столе" Style="{StaticResource Text.Subtitle}"/>
+                                        <TextBlock Style="{StaticResource Text.Caption}" Margin="0,4,0,0"
+                                                   Text="Группа всегда под рукой: отдельная панель у края экрана, без клика по панели задач. Правой кнопкой по трею — быстрые настройки."/>
+                                    </StackPanel>
+                                    <CheckBox Grid.Column="1" Style="{StaticResource Toggle}" IsChecked="{Binding DockEnabled}" VerticalAlignment="Top" Margin="0,4,0,0"/>
+                                </Grid>
+
+                                <StackPanel Visibility="{Binding DockEnabled, Converter={StaticResource BoolVisible}}">
+                                    <Border Style="{StaticResource RowDivider}"/>
+                                    <Grid Style="{StaticResource SettingRow}">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="Положение" VerticalAlignment="Center"/>
+                                        <Border Grid.Column="1" Style="{StaticResource Segments}">
+                                            <StackPanel Orientation="Horizontal">
+                                                <RadioButton Style="{StaticResource Segment}" Content="Слева"
+                                                             IsChecked="{Binding DockEdge, Converter={StaticResource EnumBool}, ConverterParameter=Left}"/>
+                                                <RadioButton Style="{StaticResource Segment}" Content="Сверху"
+                                                             IsChecked="{Binding DockEdge, Converter={StaticResource EnumBool}, ConverterParameter=Top}"/>
+                                                <RadioButton Style="{StaticResource Segment}" Content="Справа"
+                                                             IsChecked="{Binding DockEdge, Converter={StaticResource EnumBool}, ConverterParameter=Right}"/>
+                                                <RadioButton Style="{StaticResource Segment}" Content="Снизу"
+                                                             IsChecked="{Binding DockEdge, Converter={StaticResource EnumBool}, ConverterParameter=Bottom}"/>
+                                                <RadioButton Style="{StaticResource Segment}" Content="Свободно"
+                                                             IsChecked="{Binding DockEdge, Converter={StaticResource EnumBool}, ConverterParameter=Free}"/>
+                                            </StackPanel>
+                                        </Border>
+                                    </Grid>
+
+                                    <TextBlock Style="{StaticResource Text.Caption}" Margin="0,10,0,0" HorizontalAlignment="Right" TextAlignment="Right"
+                                               Visibility="{Binding DockEdge, Converter={StaticResource EnumVisible}, ConverterParameter=Free}"
+                                               Text="Перетаскивайте трей за ручку. Отпустите его у края экрана — он прилипнет к этому краю."/>
+
+                                    <StackPanel Visibility="{Binding DockEdge, Converter={StaticResource EnumCollapsed}, ConverterParameter=Free}">
+                                        <Border Style="{StaticResource RowDivider}"/>
+                                        <Grid Style="{StaticResource SettingRow}">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="Выравнивание вдоль края" VerticalAlignment="Center"/>
+                                            <Border Grid.Column="1" Style="{StaticResource Segments}">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <RadioButton Style="{StaticResource Segment}" Content="В начале"
+                                                                 IsChecked="{Binding DockAlign, Converter={StaticResource EnumBool}, ConverterParameter=Start}"/>
+                                                    <RadioButton Style="{StaticResource Segment}" Content="По центру"
+                                                                 IsChecked="{Binding DockAlign, Converter={StaticResource EnumBool}, ConverterParameter=Center}"/>
+                                                    <RadioButton Style="{StaticResource Segment}" Content="В конце"
+                                                                 IsChecked="{Binding DockAlign, Converter={StaticResource EnumBool}, ConverterParameter=End}"/>
+                                                </StackPanel>
+                                            </Border>
+                                        </Grid>
+
+                                        <StackPanel x:Name="DockMonitorRow">
+                                            <Border Style="{StaticResource RowDivider}"/>
+                                            <Grid Style="{StaticResource SettingRow}">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Text="Монитор" VerticalAlignment="Center"/>
+                                                <Border Grid.Column="1" Style="{StaticResource Segments}">
+                                                    <StackPanel x:Name="DockMonitorPanel" Orientation="Horizontal"/>
+                                                </Border>
+                                            </Grid>
+                                        </StackPanel>
+                                    </StackPanel>
+
+                                    <Border Style="{StaticResource RowDivider}"/>
+                                    <Grid Style="{StaticResource SettingRow}">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel VerticalAlignment="Center" Margin="0,0,16,0">
+                                            <TextBlock Text="Поверх всех окон"/>
+                                            <TextBlock Style="{StaticResource Text.Caption}"
+                                                       Text="Иначе трей живёт на рабочем столе под окнами и не пропадает по Win+D. В полноэкранных играх и видео трей сам уходит назад."/>
+                                        </StackPanel>
+                                        <CheckBox Grid.Column="1" Style="{StaticResource Toggle}" IsChecked="{Binding DockTopmost}"/>
+                                    </Grid>
+
+                                    <StackPanel Visibility="{Binding DockEdge, Converter={StaticResource EnumCollapsed}, ConverterParameter=Free}">
+                                        <Border Style="{StaticResource RowDivider}"/>
+                                        <Grid Style="{StaticResource SettingRow}">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel VerticalAlignment="Center" Margin="0,0,16,0">
+                                                <TextBlock Text="Прятать за край экрана"/>
+                                                <TextBlock Style="{StaticResource Text.Caption}"
+                                                           Text="Трей уезжает за край и выезжает, когда вы подводите к нему мышь"/>
+                                            </StackPanel>
+                                            <CheckBox Grid.Column="1" Style="{StaticResource Toggle}" IsChecked="{Binding DockAutoHide}"/>
+                                        </Grid>
+                                        <Border Style="{StaticResource RowDivider}"/>
+                                        <Grid Style="{StaticResource SettingRow}">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel VerticalAlignment="Center" Margin="0,0,16,0">
+                                                <TextBlock Text="Резервировать место на экране"/>
+                                                <TextBlock Style="{StaticResource Text.Caption}"
+                                                           Text="Как панель задач: развёрнутые окна не будут заходить под трей. Не сочетается с автоскрытием."/>
+                                            </StackPanel>
+                                            <CheckBox Grid.Column="1" Style="{StaticResource Toggle}" IsChecked="{Binding DockReserveSpace}"/>
+                                        </Grid>
+                                    </StackPanel>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
                         <!-- Предпросмотр -->
                         <Border Style="{StaticResource Card}">
                             <StackPanel>

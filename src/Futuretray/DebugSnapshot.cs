@@ -44,6 +44,7 @@ internal static class DebugSnapshot
         steps.Add(("editor", () => { app.ShowEditor(); editor = Current<MainWindow>(); editor!.Left = -4000; }));
         steps.Add(("editor-item", () => editor!.SnapshotSelectFirstItem()));
         steps.Add(("editor-scrolled", () => editor!.SnapshotScroll(900)));
+        steps.Add(("editor-dock", () => { app.Store.Config.Groups[0].DockEnabled = true; editor!.SnapshotScroll(1500); }));
         steps.Add(("pin", () => editor!.SnapshotShowPin()));
         steps.Add(("settings", () => editor!.SnapshotShowSettings()));
         steps.Add(("empty-group", () => editor!.SnapshotSelectGroup(1)));
@@ -58,6 +59,7 @@ internal static class DebugSnapshot
                 if (i == steps.Count)
                 {
                     SavePopup(app, dir);
+                    SaveDocks(app, dir);
                     timer.Stop();
                     app.Shutdown();
                     return;
@@ -91,6 +93,22 @@ internal static class DebugSnapshot
             popup.UpdateLayout();
             Save(popup, Path.Combine(dir, $"popup-{idx}.png"));
             popup.Close();
+        }
+    }
+
+    private static void SaveDocks(App app, string dir)
+    {
+        var groups = app.Store.Config.Groups;
+        var cases = new[] { (groups[0], DockEdge.Left), (groups[2], DockEdge.Bottom), (groups[0], DockEdge.Free) };
+        int n = 0;
+        foreach (var (g, edge) in cases)
+        {
+            g.DockEdge = edge;
+            var dock = new DockWindow(g);
+            dock.Apply();
+            dock.UpdateLayout();
+            Save(dock, Path.Combine(dir, $"dock-{n++}-{edge}.png"));
+            dock.CloseDock();
         }
     }
 

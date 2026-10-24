@@ -163,6 +163,35 @@ public partial class MainWindow : Window
         BuildSwatches();
         UpdateIconPanels();
         UpdatePreviewTint();
+        BuildMonitorChoices();
+    }
+
+    private void BuildMonitorChoices()
+    {
+        DockMonitorPanel.Children.Clear();
+        var monitors = Monitors.All();
+        DockMonitorRow.Visibility = monitors.Count > 1 ? Visibility.Visible : Visibility.Collapsed;
+        if (_group == null || monitors.Count <= 1) return;
+
+        var current = Monitors.Find(_group.DockMonitor);
+        for (int i = 0; i < monitors.Count; i++)
+        {
+            var monitor = monitors[i];
+            var choice = new RadioButton
+            {
+                Style = (Style)FindResource("Segment"),
+                GroupName = "DockMonitor",
+                Content = monitor.IsPrimary ? $"{i + 1} · основной" : $"{i + 1}",
+                ToolTip = $"{monitor.Device}  {monitor.Bounds.Width}×{monitor.Bounds.Height}",
+                IsChecked = monitor.Handle == current.Handle,
+            };
+            choice.Checked += (_, _) =>
+            {
+                // Основной храним как null — трей пойдёт за основным монитором, если его поменять.
+                if (_group != null) _group.DockMonitor = monitor.IsPrimary ? null : monitor.Device;
+            };
+            DockMonitorPanel.Children.Add(choice);
+        }
     }
 
     private void OnGroupPropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -175,6 +204,9 @@ public partial class MainWindow : Window
                 break;
             case nameof(Group.TintOpacity):
                 UpdatePreviewTint();
+                break;
+            case nameof(Group.DockMonitor):
+                Dispatcher.BeginInvoke(BuildMonitorChoices);
                 break;
             case nameof(Group.IconMode):
                 if (_group?.IconMode == GroupIconMode.Custom && _group.CustomIconPath == null)

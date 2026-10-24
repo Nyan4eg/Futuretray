@@ -33,6 +33,8 @@ public enum TileSize { Small, Medium, Large }
 public enum BackdropKind { Acrylic, Mica, Solid }
 public enum GroupIconMode { Auto, Item, Custom }
 public enum ThemePreference { System, Light, Dark }
+public enum DockEdge { Left, Top, Right, Bottom, Free }
+public enum DockAlign { Start, Center, End }
 
 public sealed class LaunchItem : Observable
 {
@@ -113,6 +115,15 @@ public sealed class Group : Observable
     private BackdropKind _backdrop = BackdropKind.Acrylic;
     private double _tintOpacity = 0.12;
     private bool _closeAfterLaunch = true;
+    private bool _dockEnabled;
+    private DockEdge _dockEdge = DockEdge.Left;
+    private DockAlign _dockAlign = DockAlign.Center;
+    private string? _dockMonitor;
+    private bool _dockTopmost;
+    private bool _dockAutoHide;
+    private bool _dockReserveSpace;
+    private int? _dockX;
+    private int? _dockY;
 
     public Group()
     {
@@ -155,6 +166,35 @@ public sealed class Group : Observable
     public BackdropKind Backdrop { get => _backdrop; set => Set(ref _backdrop, value); }
     public double TintOpacity { get => _tintOpacity; set => Set(ref _tintOpacity, Math.Clamp(value, 0, 0.8)); }
     public bool CloseAfterLaunch { get => _closeAfterLaunch; set => Set(ref _closeAfterLaunch, value); }
+
+    // ----- Трей на рабочем столе -----
+
+    /// <summary>Показывать группу отдельной панелью на рабочем столе.</summary>
+    public bool DockEnabled { get => _dockEnabled; set => Set(ref _dockEnabled, value); }
+    public DockEdge DockEdge { get => _dockEdge; set => Set(ref _dockEdge, value); }
+    public DockAlign DockAlign { get => _dockAlign; set => Set(ref _dockAlign, value); }
+
+    /// <summary>Имя устройства монитора (\\.\DISPLAY2); null — основной.</summary>
+    public string? DockMonitor { get => _dockMonitor; set => Set(ref _dockMonitor, value); }
+    public bool DockTopmost { get => _dockTopmost; set => Set(ref _dockTopmost, value); }
+
+    /// <summary>Прятать за край экрана и показывать при наведении. Несовместимо с резервированием места.</summary>
+    public bool DockAutoHide
+    {
+        get => _dockAutoHide;
+        set { if (Set(ref _dockAutoHide, value) && value) DockReserveSpace = false; }
+    }
+
+    /// <summary>Как панель задач: развёрнутые окна не заходят под трей.</summary>
+    public bool DockReserveSpace
+    {
+        get => _dockReserveSpace;
+        set { if (Set(ref _dockReserveSpace, value) && value) DockAutoHide = false; }
+    }
+
+    /// <summary>Положение в свободном режиме (физические пиксели, левый верхний угол).</summary>
+    public int? DockX { get => _dockX; set => Set(ref _dockX, value); }
+    public int? DockY { get => _dockY; set => Set(ref _dockY, value); }
 
     [JsonIgnore] public ImageSource? Icon => GroupIconRenderer.Get(this, 96);
 
@@ -203,6 +243,11 @@ public sealed class Group : Observable
             Backdrop = Backdrop,
             TintOpacity = TintOpacity,
             CloseAfterLaunch = CloseAfterLaunch,
+            DockEdge = DockEdge,
+            DockAlign = DockAlign,
+            DockMonitor = DockMonitor,
+            DockTopmost = DockTopmost,
+            DockAutoHide = DockAutoHide,
         };
         foreach (var item in Items) copy.Items.Add(item.Clone());
         return copy;

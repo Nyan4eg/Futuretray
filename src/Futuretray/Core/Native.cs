@@ -131,6 +131,98 @@ public static class Native
     [DllImport("shell32.dll", CharSet = CharSet.Unicode)] public static extern bool Shell_NotifyIcon(uint message, ref NOTIFYICONDATA data);
     [DllImport("shlwapi.dll", CharSet = CharSet.Unicode)] public static extern int AssocQueryString(int flags, int str, string assoc, string? extra, StringBuilder? output, ref uint outputLength);
 
+    // ----- Панели (appbar) и мониторы -----
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct APPBARDATA
+    {
+        public int cbSize;
+        public IntPtr hWnd;
+        public uint uCallbackMessage;
+        public uint uEdge;
+        public RECT rc;
+        public IntPtr lParam;
+    }
+
+    public const uint ABM_NEW = 0, ABM_REMOVE = 1, ABM_QUERYPOS = 2, ABM_SETPOS = 3;
+    public const int ABN_POSCHANGED = 1, ABN_FULLSCREENAPP = 2;
+    public const uint ABE_LEFT = 0, ABE_TOP = 1, ABE_RIGHT = 2, ABE_BOTTOM = 3;
+
+    [DllImport("shell32.dll")] public static extern uint SHAppBarMessage(uint message, ref APPBARDATA data);
+
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+    public struct MONITORINFOEX
+    {
+        public int cbSize;
+        public RECT rcMonitor;
+        public RECT rcWork;
+        public uint dwFlags;
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)] public string szDevice;
+    }
+
+    public delegate bool MonitorEnumProc(IntPtr monitor, IntPtr hdc, ref RECT rect, IntPtr data);
+
+    [DllImport("user32.dll")] public static extern bool EnumDisplayMonitors(IntPtr hdc, IntPtr clip, MonitorEnumProc callback, IntPtr data);
+    [DllImport("user32.dll", CharSet = CharSet.Unicode, EntryPoint = "GetMonitorInfoW")] public static extern bool GetMonitorInfoEx(IntPtr monitor, ref MONITORINFOEX info);
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)] public static extern int GetClassName(IntPtr hWnd, StringBuilder name, int max);
+    [DllImport("user32.dll")] public static extern bool ReleaseCapture();
+
+    public static readonly IntPtr HWND_NOTOPMOST = new(-2);
+    public static readonly IntPtr HWND_BOTTOM = new(1);
+    public const int GWLP_HWNDPARENT = -8;
+    public const long WS_EX_NOACTIVATE = 0x08000000;
+    public const int WM_MOUSEACTIVATE = 0x21, MA_NOACTIVATE = 3;
+
+    public static string ClassName(IntPtr hWnd)
+    {
+        var sb = new StringBuilder(256);
+        return GetClassName(hWnd, sb, sb.Capacity) > 0 ? sb.ToString() : "";
+    }
+
+    // ----- Акрил, работающий и в неактивном окне -----
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct ACCENT_POLICY
+    {
+        public int AccentState;
+        public int AccentFlags;
+        public uint GradientColor;
+        public int AnimationId;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct WINDOWCOMPOSITIONATTRIBDATA
+    {
+        public int Attribute;
+        public IntPtr Data;
+        public int SizeOfData;
+    }
+
+    [DllImport("user32.dll")] private static extern int SetWindowCompositionAttribute(IntPtr hWnd, ref WINDOWCOMPOSITIONATTRIBDATA data);
+
+    /// <param name="state">0 — выключено, 3 — размытие, 4 — акрил.</param>
+    /// <param name="abgr">Цвет подложки в формате AABBGGRR.</param>
+    public static void SetAccent(IntPtr hWnd, int state, uint abgr)
+    {
+        var policy = new ACCENT_POLICY { AccentState = state, AccentFlags = 2, GradientColor = abgr };
+        var size = Marshal.SizeOf<ACCENT_POLICY>();
+        var ptr = Marshal.AllocHGlobal(size);
+        try
+        {
+            Marshal.StructureToPtr(policy, ptr, false);
+            var data = new WINDOWCOMPOSITIONATTRIBDATA { Attribute = 19 /* WCA_ACCENT_POLICY */, Data = ptr, SizeOfData = size };
+            SetWindowCompositionAttribute(hWnd, ref data);
+        }
+        catch
+        {
+            // недокументированный API; если его нет — просто остаётся сплошной фон
+        }
+        finally
+        {
+            Marshal.FreeHGlobal(ptr);
+        }
+    }
+
     public static string? GetKnownFolderPath(Guid id)
     {
         if (SHGetKnownFolderPath(id, 0, IntPtr.Zero, out var ptr) != 0) return null;

@@ -16,6 +16,7 @@ public partial class App : Application
     private readonly Dictionary<string, long> _lastHidden = new();
     private MainWindow? _editor;
     private TrayIcon? _tray;
+    private DockManager? _docks;
 
     public static App Host => (App)Current;
 
@@ -65,6 +66,8 @@ public partial class App : Application
         _ipc.Start();
 
         UpdateTray();
+        _docks = new DockManager(Store);
+        _docks.SyncAll();
         Handle(Initial);
         Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, AfterStartup);
     }
@@ -87,6 +90,7 @@ public partial class App : Application
     protected override void OnExit(ExitEventArgs e)
     {
         Store.SaveNow();
+        _docks?.CloseAll();
         _tray?.Dispose();
         base.OnExit(e);
     }
@@ -163,6 +167,7 @@ public partial class App : Application
 
     public void ExitApp()
     {
+        _docks?.CloseAll();
         foreach (var popup in _popups.Values) popup.Close();
         Shutdown();
     }

@@ -1,0 +1,25 @@
+<Window x:Class="Futuretray.UI.DockWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ui="clr-namespace:Futuretray.UI"
+        Title="Futuretray"
+        WindowStyle="SingleBorderWindow" ResizeMode="NoResize" ShowInTaskbar="False" ShowActivated="False"
+        WindowStartupLocation="Manual" Left="-32000" Top="-32000" Width="60" Height="60"
+        Background="Transparent"
+        Foreground="{DynamicResource Brush.Text}" FontFamily="{StaticResource Font.Text}" FontSize="13"
+        UseLayoutRounding="True">
+    <Grid x:Name="Root" Background="Transparent">
+        <Border x:Name="SolidLayer" Background="{DynamicResource Brush.PopupSolid}" Visibility="Collapsed"/>
+        <Border x:Name="TintLayer" IsHitTestVisible="False"/>
+
+        <StackPanel x:Name="Body" Orientation="Horizontal" Margin="4" HorizontalAlignment="Left" VerticalAlignment="Top">
+            <Border x:Name="Grip" Background="Transparent" Cursor="SizeAll" Visibility="Collapsed"
+                    ToolTip="Перетащите, чтобы переместить. Отпустите у края экрана — трей прилипнет к нему."
+                    MouseLeftButtonDown="Grip_MouseDown" MouseMove="Grip_MouseMove" MouseLeftButtonUp="Grip_MouseUp">
+                <TextBlock x:Name="GripGlyph" Style="{StaticResource Text.Glyph}" FontSize="12"
+                           Foreground="{DynamicResource Brush.TextTertiary}" HorizontalAlignment="Center"/>
+            </Border>
+            <ui:GroupTilesView x:Name="Tiles"/>
+        </StackPanel>
+    </Grid>
+</Window>

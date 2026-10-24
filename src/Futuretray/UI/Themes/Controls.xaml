@@ -8,6 +8,8 @@
 
     <ui:EnumBoolConverter x:Key="EnumBool"/>
     <ui:NullToCollapsedConverter x:Key="NullCollapsed"/>
+    <ui:EnumVisibilityConverter x:Key="EnumVisible"/>
+    <ui:EnumVisibilityConverter x:Key="EnumCollapsed" Invert="True"/>
     <ui:BoolToVisibleConverter x:Key="BoolVisible"/>
     <ui:BoolToVisibleConverter x:Key="BoolCollapsed" Invert="True"/>
     <ui:IntDoubleConverter x:Key="IntDouble"/>
