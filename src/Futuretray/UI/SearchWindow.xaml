@@ -69,13 +69,13 @@
                 </Grid.ColumnDefinitions>
                 <TextBlock Text="&#xE721;" Style="{StaticResource Text.Glyph}" FontSize="18" Foreground="{DynamicResource Brush.TextSecondary}" Margin="0,0,12,0"/>
                 <TextBox x:Name="Query" Grid.Column="1" Style="{StaticResource SearchBox}" Padding="0,4"
-                         ui:Ui.Placeholder="{ui:T 'Найти программу в группах…'}" TextChanged="Query_TextChanged" PreviewKeyDown="Query_PreviewKeyDown"/>
+                         ui:Ui.Placeholder="{ui:T 'Программа, окно или приложение…'}" TextChanged="Query_TextChanged" PreviewKeyDown="Query_PreviewKeyDown"/>
             </Grid>
             <Border Height="1" Background="{DynamicResource Brush.Divider}" Margin="-8,0,-8,6"/>
 
             <ListBox x:Name="Results" MaxHeight="430" ItemContainerStyle="{StaticResource ResultItem}"
                      ScrollViewer.HorizontalScrollBarVisibility="Disabled" Focusable="False"
-                     MouseLeftButtonUp="Results_MouseUp">
+                     MouseLeftButtonUp="Results_MouseUp" MouseRightButtonUp="Results_MouseRightButtonUp">
                 <ListBox.ItemTemplate>
                     <DataTemplate>
                         <Grid>
@@ -102,8 +102,10 @@
             <TextBlock x:Name="EmptyText" Text="{ui:T 'Ничего не найдено'}" Margin="12,10,12,14" Visibility="Collapsed"
                        Foreground="{DynamicResource Brush.TextSecondary}"/>
 
-            <TextBlock Style="{StaticResource Text.Caption}" Margin="12,6,12,2" TextWrapping="NoWrap"
-                       Text="{ui:T 'Enter — открыть  ·  Shift+Enter — новая копия  ·  ↑↓ — выбор  ·  Esc — закрыть'}"/>
+            <TextBlock x:Name="StatusText" Margin="12,8,12,2" TextWrapping="Wrap" Visibility="Collapsed"
+                       Foreground="{DynamicResource Brush.Text}"/>
+            <TextBlock Style="{StaticResource Text.Caption}" Margin="12,6,12,2" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"
+                       Text="{ui:T 'Enter — открыть  ·  Ctrl+Enter — добавить в группу  ·  Shift+Enter — новая копия  ·  Esc — закрыть'}"/>
         </StackPanel>
     </Grid>
 </Window>

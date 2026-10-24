@@ -22,7 +22,8 @@ public partial class LocalizationTests
                         !f.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}"));
 
     // Отчёт для разработчика, отладочные снимки и сам словарь переводить не нужно.
-    private static readonly string[] NotUiFiles = { "DiagnosticsReport.cs", "DebugSnapshot.cs", "English.cs", "Loc.cs" };
+    // AppIndex.cs: русские слова там — образцы для отсева деинсталляторов, а не текст интерфейса.
+    private static readonly string[] NotUiFiles = { "DiagnosticsReport.cs", "DebugSnapshot.cs", "English.cs", "Loc.cs", "AppIndex.cs" };
 
     [GeneratedRegex(@"\{ui:T '((?:[^'\\]|\\.)*)'\}")] private static partial Regex XamlKey();
     [GeneratedRegex(@"Loc\.(?:T|F)\(\s*""((?:[^""\\]|\\.)*)""")] private static partial Regex CodeKey();

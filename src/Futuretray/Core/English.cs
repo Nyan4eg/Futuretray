@@ -250,10 +250,18 @@ internal static class English
 
         // ----- Окно поиска -----
         ["Futuretray — поиск"] = "Futuretray — search",
-        ["Найти программу в группах…"] = "Find an app in your groups…",
+        ["Программа, окно или приложение…"] = "Search groups, open windows and apps…",
         ["Программа открыта"] = "App is open",
-        ["Enter — открыть  ·  Shift+Enter — новая копия  ·  ↑↓ — выбор  ·  Esc — закрыть"] =
-            "Enter — open  ·  Shift+Enter — new copy  ·  ↑↓ — select  ·  Esc — close",
+        ["Enter — открыть  ·  Ctrl+Enter — добавить в группу  ·  Shift+Enter — новая копия  ·  Esc — закрыть"] =
+            "Enter — open  ·  Ctrl+Enter — add to group  ·  Shift+Enter — new copy  ·  Esc — close",
+        ["Окно · {0}"] = "Window · {0}",
+        ["Приложение из меню «Пуск»"] = "App from the Start menu",
+        ["Приложение · {0}"] = "App · {0}",
+        ["Переключиться"] = "Switch to",
+        ["Добавить в группу"] = "Add to group",
+        ["Сначала создайте группу в редакторе"] = "Create a group in the editor first",
+        ["«{0}» уже есть в группе «{1}»"] = "“{0}” is already in “{1}”",
+        ["«{0}» добавлено в группу «{1}»"] = "Added “{0}” to “{1}”",
 
         // ----- Трей Windows и уведомления -----
         ["Готово! Futuretray обновлён до версии {0}"] = "Done! Futuretray has been updated to version {0}",

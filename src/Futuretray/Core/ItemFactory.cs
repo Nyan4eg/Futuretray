@@ -134,7 +134,7 @@ public static partial class ItemFactory
         return File.Exists(candidate) ? candidate : null;
     }
 
-    private static string? FriendlyExeName(string path)
+    internal static string? FriendlyExeName(string path)
     {
         try
         {

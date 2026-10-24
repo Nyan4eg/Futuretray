@@ -101,6 +101,7 @@ public partial class App : Application
             AutoStart.Sync(Store.Config.Settings.RunAtStartup);
             Shortcuts.EnsureAppShortcut();
             Icons.Prewarm(Store.Config.Groups.SelectMany(g => g.Items));
+            _ = AppIndex.RefreshAsync();
             Shortcuts.RepairAll(Store.Config.Groups.ToList());
             Updates.Start();
         }

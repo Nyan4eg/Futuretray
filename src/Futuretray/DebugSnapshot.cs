@@ -100,7 +100,7 @@ internal static class DebugSnapshot
                     await CheckFeaturesAsync(app, dir);
                     SavePopup(app, dir);
                     SaveDocks(app, dir);
-                    SaveSearch(dir);
+                    await SaveSearchAsync(dir);
                     SaveHero(app, dir);
                     DiagnosticsReport.Create(app.Store, dir);
                     app.Shutdown();
@@ -545,13 +545,51 @@ internal static class DebugSnapshot
         File.WriteAllText(Path.Combine(dir, "dock-layout.txt"), sb.ToString());
     }
 
-    private static void SaveSearch(string dir)
+    private static async Task SaveSearchAsync(string dir)
     {
         var search = new SearchWindow();
         search.ShowNearCursor();
         search.Query.Text = Loc.IsEnglish ? "e" : "о";
         search.UpdateLayout();
         Save(search, Path.Combine(dir, "search.png"));
+
+        // Поиск везде: приложения из «Пуска» и открытые окна. Итог — search.txt.
+        await AppIndex.RefreshAsync();
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine($"apps indexed: {AppIndex.Apps.Count}");
+        foreach (var query in new[] { "calc", "кальк", "explorer", "pow" })
+        {
+            search.Query.Text = query;
+            search.UpdateLayout();
+            sb.AppendLine($"[{query}]");
+            foreach (var r in search.Results.Items.OfType<SearchResult>())
+                sb.AppendLine($"  {r.Kind,-9} {r.Name} — {r.Subtitle}");
+        }
+        // Как при наборе: длинная выдача → короткая → снова длинная; окно должно подстраиваться.
+        foreach (var (query, file) in new[] { ("pow", "search-long"), ("calc", "search-short"), ("po", "search-everywhere") })
+        {
+            search.Query.Text = query;
+            await Task.Delay(400);
+            search.UpdateLayout();
+            search.Body.Measure(new Size(search.Width, double.PositiveInfinity));
+            sb.AppendLine($"height[{query}]: {search.Height:0} for {search.Results.Items.Count} results; body {search.Body.DesiredSize.Height:0}, list {search.Results.DesiredSize.Height:0}, actual {search.ActualHeight:0}");
+            Save(search, Path.Combine(dir, file + ".png"));
+        }
+        // Добавить в группу: первое приложение из «Пуска» → «Игры»; второй раз — «уже есть».
+        var games = App.Host.Store.Config.Groups[1];
+        var appResult = search.Results.Items.OfType<SearchResult>().First(r => r.Kind == SearchKind.App);
+        int before = games.Items.Count;
+        search.AddToGroup(appResult, games);
+        var added = search.StatusText.Text;
+        search.AddToGroup(appResult, games);
+        sb.AppendLine($"add: {added} | {search.StatusText.Text}");
+        sb.AppendLine($"add-ok: {games.Items.Count == before + 1 && games.Items[^1].Name == appResult.Name && games.Items[^1].Id != appResult.Item.Id}");
+        await Task.Delay(300);
+        search.UpdateLayout();
+        Save(search, Path.Combine(dir, "search-added.png"));
+        games.Items.RemoveAt(games.Items.Count - 1);
+
+        File.WriteAllText(Path.Combine(dir, "search.txt"), sb.ToString());
         search.Close();
     }
 
