@@ -27,16 +27,45 @@ internal static class Program
         if (command.Kind == CommandKind.Popup && Native.GetCursorPos(out var cursor))
             command = command with { X = cursor.X, Y = cursor.Y };
 
-        using var hostMutex = new Mutex(true, Ipc.MutexName, out bool isHost);
-        if (!isHost)
+        bool isHost;
+        using (var hostMutex = new Mutex(true, Ipc.MutexName, out isHost))
         {
-            // Разрешаем хосту вывести окно на передний план: нас запустил Проводник
-            // по клику пользователя, поэтому у нас это право есть.
-            Native.AllowSetForegroundWindow(Native.ASFW_ANY);
-            return Ipc.TrySend(command, 5000) ? 0 : 1;
-        }
+            if (!isHost)
+            {
+                // Разрешаем хосту вывести окно на передний план: нас запустил Проводник
+                // по клику пользователя, поэтому у нас это право есть.
+                Native.AllowSetForegroundWindow(Native.ASFW_ANY);
+                bool sent = Ipc.TrySend(command.Kind == CommandKind.Uninstall ? new HostCommand(CommandKind.Exit) : command, 5000);
+                if (command.Kind is CommandKind.Exit or CommandKind.Uninstall)
+                {
+                    hostMutex.Dispose();
+                    WaitForHostExit();
+                    if (command.Kind == CommandKind.Uninstall) Uninstaller.Cleanup();
+                }
+                return sent ? 0 : 1;
+            }
 
-        return RunHost(command);
+            // Нечего закрывать — не поднимаем хост ради этого.
+            if (command.Kind == CommandKind.Exit) return 0;
+            if (command.Kind == CommandKind.Uninstall)
+            {
+                Uninstaller.Cleanup();
+                return 0;
+            }
+
+            return RunHost(command);
+        }
+    }
+
+    /// <summary>Ждём, пока хост действительно завершится и отпустит файлы (нужно установщику).</summary>
+    private static void WaitForHostExit()
+    {
+        for (int i = 0; i < 60; i++)
+        {
+            using var probe = new Mutex(false, Ipc.MutexName, out bool createdNew);
+            if (createdNew) return;
+            Thread.Sleep(100);
+        }
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]

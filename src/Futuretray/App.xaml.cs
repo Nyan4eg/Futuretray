@@ -24,6 +24,7 @@ public partial class App : Application
     public ConfigStore Store { get; } = new();
     public IconService Icons { get; } = new();
     public ShortcutManager Shortcuts { get; } = new();
+    public UpdateManager Updates { get; private set; } = null!;
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -49,6 +50,9 @@ public partial class App : Application
         {
             foreach (var g in Store.Config.Groups) g.RefreshIcon();
         };
+
+        Updates = new UpdateManager(Store.Config.Settings);
+        Updates.Found += update => _editor?.ShowUpdateToast(update);
 
         Store.GroupChanged += g => Shortcuts.Schedule(g);
         Store.Config.Groups.CollectionChanged += OnGroupsChanged;
@@ -80,6 +84,7 @@ public partial class App : Application
             Shortcuts.EnsureAppShortcut();
             Icons.Prewarm(Store.Config.Groups.SelectMany(g => g.Items));
             Shortcuts.RepairAll(Store.Config.Groups.ToList());
+            Updates.Start();
         }
         catch (Exception ex)
         {
@@ -108,6 +113,9 @@ public partial class App : Application
                     ExitApp();
                     break;
                 case CommandKind.Background:
+                    break;
+                case CommandKind.Updated:
+                    ShowEditor(null, $"Готово! Futuretray обновлён до версии {Updater.CurrentVersionText}");
                     break;
                 default:
                     ShowEditor(command.GroupId);
@@ -233,6 +241,8 @@ public partial class App : Application
             }
         }
         menu.Items.Add(new Separator());
+        if (Updates.Available is { } update)
+            menu.Items.Add(MenuItem("", $"Обновить до версии {update.Version.ToString(3)}", () => _ = Updates.InstallAsync()));
         menu.Items.Add(MenuItem("", "Выйти", ExitApp));
 
         if (_tray != null) Native.SetForegroundWindow(_tray.Handle);

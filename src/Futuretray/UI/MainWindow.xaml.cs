@@ -35,7 +35,12 @@ public partial class MainWindow : Window
 
         GroupList.ItemsSource = Groups;
         SettingsPanel.DataContext = _app.Store.Config.Settings;
-        VersionText.Text = $"Версия {Assembly.GetExecutingAssembly().GetName().Version?.ToString(3)} · группы приложений на панели задач";
+        UpdatesCard.DataContext = _app.Updates;
+        Loaded += (_, _) =>
+        {
+            if (_app.Updates.Available is { } update) ShowUpdateToast(update);
+        };
+        VersionText.Text = $"Версия {Updater.CurrentVersionText} · группы приложений на панели задач";
 
         Groups.CollectionChanged += OnGroupsChanged;
         ThemeManager.Changed += ApplyEffects;
@@ -858,6 +863,20 @@ public partial class MainWindow : Window
     }
 
     private void OpenDataFolder_Click(object sender, RoutedEventArgs e) => Launcher.OpenFolder(ConfigStore.DataDir);
+
+    private async void CheckUpdates_Click(object sender, RoutedEventArgs e) => await _app.Updates.CheckAsync(manual: true);
+
+    private async void InstallUpdate_Click(object sender, RoutedEventArgs e) => await _app.Updates.InstallAsync();
+
+    private void ReleaseNotes_Click(object sender, RoutedEventArgs e)
+    {
+        if (_app.Updates.Available is { } update)
+            Launcher.Launch(new LaunchItem { Kind = ItemKind.Url, Target = update.PageUrl });
+    }
+
+    public void ShowUpdateToast(UpdateInfo update) =>
+        ShowToast($"Доступна новая версия Futuretray — {update.Version.ToString(3)}", "Обновить",
+            () => _ = _app.Updates.InstallAsync());
 
     private void Exit_Click(object sender, RoutedEventArgs e) => _app.ExitApp();
 

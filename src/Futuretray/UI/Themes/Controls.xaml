@@ -13,6 +13,7 @@
     <ui:BoolToVisibleConverter x:Key="BoolVisible"/>
     <ui:BoolToVisibleConverter x:Key="BoolCollapsed" Invert="True"/>
     <ui:IntDoubleConverter x:Key="IntDouble"/>
+    <ui:InverseBoolConverter x:Key="InverseBool"/>
     <ui:ColumnsTextConverter x:Key="ColumnsText"/>
     <ui:PercentConverter x:Key="Percent"/>
     <ui:AppsCountConverter x:Key="AppsCount"/>

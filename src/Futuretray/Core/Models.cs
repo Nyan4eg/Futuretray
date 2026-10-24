@@ -260,6 +260,11 @@ public sealed class AppSettings : Observable
     private bool _runAtStartup = true;
     private bool _showTrayIcon = true;
     private bool _welcomeShown;
+    private bool _checkUpdates = true;
+    private DateTime? _lastUpdateCheck;
+
+    public bool CheckUpdates { get => _checkUpdates; set => Set(ref _checkUpdates, value); }
+    public DateTime? LastUpdateCheck { get => _lastUpdateCheck; set => Set(ref _lastUpdateCheck, value); }
 
     public ThemePreference Theme { get => _theme; set => Set(ref _theme, value); }
     public bool RunAtStartup { get => _runAtStartup; set => Set(ref _runAtStartup, value); }
