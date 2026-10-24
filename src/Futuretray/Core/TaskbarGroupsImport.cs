@@ -107,7 +107,7 @@ public static class TaskbarGroupsImport
         var image = new[] { "GroupImage.png", "GroupIcon.ico" }.Select(n => Path.Combine(dir, n)).FirstOrDefault(File.Exists);
         if (image != null)
         {
-            var target = Path.Combine(ConfigStore.DataDir, "UserIcons", Ids.New() + Path.GetExtension(image));
+            var target = Path.Combine(ConfigStore.UserIconsDir, Ids.New() + Path.GetExtension(image));
             Directory.CreateDirectory(Path.GetDirectoryName(target)!);
             File.Copy(image, target, true);
             group.CustomIconPath = target;

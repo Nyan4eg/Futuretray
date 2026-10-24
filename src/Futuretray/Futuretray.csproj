@@ -12,7 +12,7 @@
     <StartupObject>Futuretray.Program</StartupObject>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>Assets\app.ico</ApplicationIcon>
-    <Version>1.9.0</Version>
+    <Version>1.10.0</Version>
     <Product>Futuretray</Product>
     <Description>Группы приложений на панели задач Windows</Description>
     <Copyright>Futuretray</Copyright>
@@ -34,6 +34,13 @@
   <ItemGroup>
     <Resource Include="Assets\app.ico" />
     <Resource Include="Assets\logo.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- «Что нового» после обновления берётся из CHANGELOG -->
+    <EmbeddedResource Include="..\..\CHANGELOG.md" LogicalName="CHANGELOG.md" />
+    <!-- WithCulture=false: иначе «.en.» в имени уводит файл в сборку-спутник en\ -->
+    <EmbeddedResource Include="..\..\CHANGELOG.en.md" LogicalName="CHANGELOG.en.md" WithCulture="false" />
   </ItemGroup>
 
 </Project>

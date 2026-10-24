@@ -255,6 +255,36 @@ internal static class English
         ["Enter — открыть  ·  Ctrl+Enter — добавить в группу  ·  Shift+Enter — новая копия  ·  Esc — закрыть"] =
             "Enter — open  ·  Ctrl+Enter — add to group  ·  Shift+Enter — new copy  ·  Esc — close",
         ["Окно · {0}"] = "Window · {0}",
+
+        // ----- Синхронизация, портативная версия, «Что нового» -----
+        ["Синхронизация между компьютерами"] = "Sync between computers",
+        ["Храните группы в папке OneDrive, Dropbox или на сетевом диске — и они будут одинаковыми на всех ваших компьютерах. Расположение окон у каждого набора мониторов своё."] =
+            "Keep your groups in a OneDrive or Dropbox folder or on a network drive, and they'll be the same on all your computers. Window layouts stay separate for each monitor setup.",
+        ["Через OneDrive"] = "Via OneDrive",
+        ["Выбрать папку…"] = "Choose a folder…",
+        ["Другая папка…"] = "Another folder…",
+        ["Открыть папку"] = "Open folder",
+        ["Отключить"] = "Turn off",
+        ["В этой папке уже есть группы"] = "This folder already has groups",
+        ["Скорее всего, их сохранил Futuretray на другом компьютере. Взять их — группы этого компьютера заменятся ими (Futuretray перезапустится). Заменить — в папку запишутся группы этого компьютера."] =
+            "Most likely Futuretray saved them on another computer. Use them — this computer's groups are replaced with them (Futuretray restarts). Replace — this computer's groups are written to the folder.",
+        ["Заменить моими"] = "Replace with mine",
+        ["Взять из папки"] = "Use the folder's",
+        ["Группы изменились на другом компьютере"] = "Groups changed on another computer",
+        ["Группы хранятся только на этом компьютере"] = "Groups are stored on this computer only",
+        ["Группы синхронизируются через папку {0}"] = "Groups sync through the folder {0}",
+        ["Папка для синхронизации групп"] = "Folder to sync groups through",
+        ["Готово: группы сохранены в папку синхронизации"] = "Done: groups are saved to the sync folder",
+        ["Не удалось включить синхронизацию: "] = "Couldn't turn on sync: ",
+        ["Синхронизация выключена — группы остались на этом компьютере"] = "Sync is off — the groups stay on this computer",
+        ["Портативная версия: настройки, значки и журнал хранятся рядом с программой — {0}"] =
+            "Portable version: settings, icons and the log are kept next to the program — {0}",
+        ["В архиве обновления нет Futuretray.exe"] = "The update archive has no Futuretray.exe",
+        ["Нет права записи в папку программы — скачайте новую версию вручную"] =
+            "No permission to write to the program folder — download the new version manually",
+        ["Что нового в Futuretray {0}"] = "What's new in Futuretray {0}",
+        ["Все изменения"] = "All changes",
+        ["Понятно"] = "Got it",
         ["Приложение из меню «Пуск»"] = "App from the Start menu",
         ["Приложение · {0}"] = "App · {0}",
         ["Переключиться"] = "Switch to",

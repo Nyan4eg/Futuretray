@@ -14,7 +14,7 @@ public sealed class ShortcutManager
 
     public static string ShortcutsDir => Path.Combine(ConfigStore.DataDir, "Shortcuts");
     public static string IconsDir => Path.Combine(ConfigStore.DataDir, "Icons");
-    public static string ExePath => Environment.ProcessPath ?? Path.Combine(AppContext.BaseDirectory, "Futuretray.exe");
+    public static string ExePath => AppPaths.ExePath;
 
     private static string PinnedDir => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
         @"Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar");

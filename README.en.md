@@ -17,6 +17,9 @@ One taskbar icon → click → a tidy popup with your apps, folders and websites
 Download `FuturetraySetup-<version>.exe` from the [latest release](https://github.com/Nyan4eg/Futuretray/releases/latest)
 and run it — no admin rights needed. Futuretray keeps itself up to date after that.
 
+**Portable version** — `Futuretray.zip`: unpack it anywhere, even to a USB stick. Settings live in the `Data`
+folder next to the program, and updates install in place.
+
 > On first run Windows SmartScreen may warn about an unknown publisher, because the app isn't signed with a paid
 > certificate. Click “More info” → “Run anyway”.
 
@@ -42,6 +45,8 @@ In the popup: click to launch, **Ctrl+click** keeps it open, **Shift+click** or 
 - **Like the taskbar**: a dash under running apps, and clicking a running app switches to its window.
 - **Jump list**: right-click a pinned group to see its apps in the native Windows menu.
 - **Workspaces**: “Remember layout”, and “Open all” puts every window back in its place, across monitors. A separate layout for each monitor setup, launch order with delays, and opening a group when you sign in.
+- **Sync between computers**: keep groups in a OneDrive or Dropbox folder or on a network drive — the same on all your computers.
+- **What's new** after every update.
 - **Search everywhere** (Win+Alt+Space): group apps, open windows and Start menu apps; Ctrl+Enter adds a result to a group.
 - **Finish and switch**: “Close all of the group's apps”, a “Minimize everything else” focus mode, and “Open all” can minimize the rest or close other groups.
 - **Desktop tray**: show any group as its own bar at a screen edge or anywhere you like — always on top,

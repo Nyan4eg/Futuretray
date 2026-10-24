@@ -6,6 +6,7 @@ using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
+using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
@@ -45,6 +46,7 @@ public partial class MainWindow : Window
             if (_app.Updates.Available is { } update) ShowUpdateToast(update);
         };
         VersionText.Text = Loc.F("Версия {0} · группы приложений на панели задач", Updater.CurrentVersionText);
+        UpdateSyncStatus();
 
         Groups.CollectionChanged += OnGroupsChanged;
         ThemeManager.Changed += ApplyEffects;
@@ -848,7 +850,7 @@ public partial class MainWindow : Window
         try
         {
             // Копируем к себе, чтобы иконка не пропала, если исходный файл удалят.
-            var dir = Path.Combine(ConfigStore.DataDir, "UserIcons");
+            var dir = ConfigStore.UserIconsDir;
             Directory.CreateDirectory(dir);
             var dest = Path.Combine(dir, Ids.New() + ext);
             File.Copy(dialog.FileName, dest, true);
@@ -1103,11 +1105,138 @@ public partial class MainWindow : Window
 
     private void Exit_Click(object sender, RoutedEventArgs e) => _app.ExitApp();
 
+    // ================= Что нового =================
+
+    private void WhatsNew_Click(object sender, RoutedEventArgs e) =>
+        ShowWhatsNew(WhatsNew.Between(WhatsNew.Load(), null, Updater.CurrentVersion));
+
+    /// <summary>Разделы CHANGELOG — заголовок версии и пункты с жирными акцентами.</summary>
+    public void ShowWhatsNew(IReadOnlyList<WhatsNew.Section> sections)
+    {
+        if (sections.Count == 0) return;
+        WhatsNewTitle.Text = Loc.F("Что нового в Futuretray {0}", sections[0].Version.ToString(3));
+        WhatsNewBody.Children.Clear();
+        foreach (var section in sections)
+        {
+            if (sections.Count > 1)
+                WhatsNewBody.Children.Add(new TextBlock
+                {
+                    Text = Loc.F("Версия {0}", section.Version.ToString(3)),
+                    Style = (Style)FindResource("Text.Strong"),
+                    Margin = new Thickness(0, WhatsNewBody.Children.Count == 0 ? 0 : 14, 0, 6),
+                });
+            foreach (var bullet in section.Bullets)
+            {
+                var text = new TextBlock { TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 8) };
+                foreach (var (part, bold) in WhatsNew.Runs(bullet))
+                    text.Inlines.Add(bold ? new Bold(new Run(part)) : new Run(part));
+                var row = new DockPanel();
+                var dot = new TextBlock { Text = "•", Margin = new Thickness(0, 0, 10, 0), Foreground = (Brush)FindResource("Brush.TextSecondary") };
+                DockPanel.SetDock(dot, Dock.Left);
+                row.Children.Add(dot);
+                row.Children.Add(text);
+                WhatsNewBody.Children.Add(row);
+            }
+        }
+        ShowOverlay(WhatsNewPanel);
+    }
+
+    private void AllChanges_Click(object sender, RoutedEventArgs e) =>
+        Launcher.Launch(new LaunchItem { Kind = ItemKind.Url, Target = $"https://github.com/{Updater.Repository}/releases" });
+
+    // ================= Синхронизация =================
+
+    private string? _syncCandidate;
+
+    private static string? OneDriveFolder =>
+        Environment.GetEnvironmentVariable("OneDrive") is { Length: > 0 } od && Directory.Exists(od) ? Path.Combine(od, "Futuretray") : null;
+
+    private void UpdateSyncStatus()
+    {
+        var folder = ConfigStore.SyncFolder;
+        SyncStatus.Text = folder == null
+            ? Loc.T("Группы хранятся только на этом компьютере")
+            : Loc.F("Группы синхронизируются через папку {0}", folder);
+        SyncOneDriveButton.Visibility = folder == null && OneDriveFolder != null ? Visibility.Visible : Visibility.Collapsed;
+        SyncChooseButton.Content = folder == null ? Loc.T("Выбрать папку…") : Loc.T("Другая папка…");
+        SyncOpenButton.Visibility = SyncOffButton.Visibility = folder == null ? Visibility.Collapsed : Visibility.Visible;
+        PortableNote.Visibility = AppPaths.Portable ? Visibility.Visible : Visibility.Collapsed;
+        PortableNote.Text = Loc.F("Портативная версия: настройки, значки и журнал хранятся рядом с программой — {0}", AppPaths.Roaming);
+    }
+
+    private void SyncOneDrive_Click(object sender, RoutedEventArgs e)
+    {
+        if (OneDriveFolder is { } folder) StartSync(folder);
+    }
+
+    private void SyncChoose_Click(object sender, RoutedEventArgs e)
+    {
+        var dialog = new Microsoft.Win32.OpenFolderDialog { Title = Loc.T("Папка для синхронизации групп") };
+        if (OneDriveFolder is { } od) dialog.InitialDirectory = Path.GetDirectoryName(od);
+        if (dialog.ShowDialog(this) == true) StartSync(dialog.FolderName);
+    }
+
+    private void StartSync(string folder)
+    {
+        if (string.Equals(Path.GetFullPath(folder), ConfigStore.SyncFolder, StringComparison.OrdinalIgnoreCase)) return;
+        if (ConfigStore.FolderHasConfig(folder))
+        {
+            _syncCandidate = folder;
+            SyncChoiceFolder.Text = folder;
+            ShowOverlay(SyncChoicePanel);
+            return;
+        }
+        ApplySync(folder, useExisting: false);
+    }
+
+    private void SyncUseExisting_Click(object sender, RoutedEventArgs e)
+    {
+        CloseOverlay();
+        if (_syncCandidate != null) ApplySync(_syncCandidate, useExisting: true);
+    }
+
+    private void SyncReplace_Click(object sender, RoutedEventArgs e)
+    {
+        CloseOverlay();
+        if (_syncCandidate != null) ApplySync(_syncCandidate, useExisting: false);
+    }
+
+    private void ApplySync(string folder, bool useExisting)
+    {
+        try
+        {
+            if (_app.Store.EnableSync(folder, useExisting))
+            {
+                _app.Restart();
+                return;
+            }
+            UpdateSyncStatus();
+            ShowToast(Loc.T("Готово: группы сохранены в папку синхронизации"));
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Enable sync");
+            ShowToast(Loc.T("Не удалось включить синхронизацию: ") + ex.Message);
+        }
+    }
+
+    private void SyncOpen_Click(object sender, RoutedEventArgs e)
+    {
+        if (ConfigStore.SyncFolder is { } folder) Launcher.OpenFolder(folder);
+    }
+
+    private void SyncOff_Click(object sender, RoutedEventArgs e)
+    {
+        _app.Store.DisableSync();
+        UpdateSyncStatus();
+        ShowToast(Loc.T("Синхронизация выключена — группы остались на этом компьютере"));
+    }
+
     // ================= Диалоги =================
 
     private void ShowOverlay(FrameworkElement panel)
     {
-        foreach (var p in new FrameworkElement[] { PinPanel, PickerPanel, UrlPanel })
+        foreach (var p in new FrameworkElement[] { PinPanel, PickerPanel, UrlPanel, SyncChoicePanel, WhatsNewPanel })
             p.Visibility = p == panel ? Visibility.Visible : Visibility.Collapsed;
         Overlay.Visibility = Visibility.Visible;
 
@@ -1190,5 +1319,7 @@ public partial class MainWindow : Window
     }
 
     internal void SnapshotSelectGroup(int index) => GroupList.SelectedIndex = index;
+
+    internal void SnapshotScrollSettings(double offset) => SettingsScroll.ScrollToVerticalOffset(offset);
 #endif
 }

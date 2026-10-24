@@ -50,6 +50,11 @@ public partial class App : Application
         ToolTipService.InitialShowDelayProperty.OverrideMetadata(typeof(FrameworkElement), new FrameworkPropertyMetadata(450));
 
         Store.Load();
+        // Портативная версия по умолчанию не прописывается в автозапуск: её часто носят на флешке.
+        if (Store.IsNew && AppPaths.Portable) Store.Config.Settings.RunAtStartup = false;
+        PendingWhatsNew = WhatsNew.Pending(Store.Config.Settings.LastSeenVersion, Store.IsNew, Updater.CurrentVersion, WhatsNew.Load());
+        if (PendingWhatsNew.Count == 0) Store.Config.Settings.LastSeenVersion = Updater.CurrentVersionText;
+        Store.ExternalChange += OnExternalConfigChange;
         if (Workspaces.MigrateLegacy(Store.Config.Groups, Workspaces.CurrentProfile)) Store.ScheduleSave();
         Loc.Init(Store.Config.Settings.Language);
 #if DEBUG
@@ -102,6 +107,7 @@ public partial class App : Application
             Shortcuts.EnsureAppShortcut();
             Icons.Prewarm(Store.Config.Groups.SelectMany(g => g.Items));
             _ = AppIndex.RefreshAsync();
+            if (AppPaths.Portable) Updater.CleanupOldExe();
             Shortcuts.RepairAll(Store.Config.Groups.ToList());
             Updates.Start();
         }
@@ -150,7 +156,8 @@ public partial class App : Application
                     Workspaces.MinimizeOthers(focusGroup);
                     break;
                 case CommandKind.Updated:
-                    ShowEditor(null, Loc.F("Готово! Futuretray обновлён до версии {0}", Updater.CurrentVersionText));
+                    // Что нового — покажет сам редактор; без него хотя бы скажем, что обновились.
+                    ShowEditor(null, PendingWhatsNew.Count > 0 ? null : Loc.F("Готово! Futuretray обновлён до версии {0}", Updater.CurrentVersionText));
                     break;
                 default:
                     ShowEditor(command.GroupId);
@@ -206,6 +213,11 @@ public partial class App : Application
         WindowEffects.ForceForeground(_editor);
         if (groupId != null) _editor.SelectGroup(groupId);
         if (message != null) _editor.ShowToast(message);
+        if (PendingWhatsNew.Count > 0)
+        {
+            _editor.ShowWhatsNew(PendingWhatsNew);
+            MarkWhatsNewSeen();
+        }
     }
 
     /// <summary>
@@ -310,6 +322,24 @@ public partial class App : Application
     }
 
     /// <summary>Перезапуск (например, после смены языка): новая копия дождётся, пока эта завершится.</summary>
+    /// <summary>«Что нового», которое редактор покажет при следующем открытии.</summary>
+    public List<WhatsNew.Section> PendingWhatsNew { get; private set; } = [];
+
+    public void MarkWhatsNewSeen()
+    {
+        PendingWhatsNew = [];
+        Store.Config.Settings.LastSeenVersion = Updater.CurrentVersionText;
+    }
+
+    /// <summary>Группы поменялись на другом компьютере: перечитываем их перезапуском (при открытом редакторе — по кнопке).</summary>
+    private void OnExternalConfigChange()
+    {
+        if (_editor?.IsVisible == true)
+            _editor.ShowToast(Loc.T("Группы изменились на другом компьютере"), Loc.T("Обновить"), Restart);
+        else
+            Restart();
+    }
+
     public void Restart()
     {
         System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(ShortcutManager.ExePath, "--restart") { UseShellExecute = true })?.Dispose();

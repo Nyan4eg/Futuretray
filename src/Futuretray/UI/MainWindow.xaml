@@ -854,6 +854,24 @@
 
                         <Border Style="{StaticResource Card}">
                             <StackPanel>
+                                <TextBlock Text="{ui:T 'Синхронизация между компьютерами'}"/>
+                                <TextBlock Style="{StaticResource Text.Caption}" TextWrapping="Wrap"
+                                           Text="{ui:T 'Храните группы в папке OneDrive, Dropbox или на сетевом диске — и они будут одинаковыми на всех ваших компьютерах. Расположение окон у каждого набора мониторов своё.'}"/>
+                                <TextBlock x:Name="SyncStatus" Margin="0,10,0,0" TextWrapping="Wrap"/>
+                                <WrapPanel Margin="0,12,0,0">
+                                    <Button x:Name="SyncOneDriveButton" Style="{StaticResource Button.Accent}" ui:Ui.Glyph="&#xE753;" Content="{ui:T 'Через OneDrive'}"
+                                            Margin="0,0,8,0" Click="SyncOneDrive_Click"/>
+                                    <Button x:Name="SyncChooseButton" ui:Ui.Glyph="&#xE8B7;" Content="{ui:T 'Выбрать папку…'}" Margin="0,0,8,0" Click="SyncChoose_Click"/>
+                                    <Button x:Name="SyncOpenButton" Style="{StaticResource Button.Subtle}" ui:Ui.Glyph="&#xE838;" Content="{ui:T 'Открыть папку'}"
+                                            Margin="0,0,8,0" Click="SyncOpen_Click"/>
+                                    <Button x:Name="SyncOffButton" Style="{StaticResource Button.Subtle}" Content="{ui:T 'Отключить'}" Click="SyncOff_Click"/>
+                                </WrapPanel>
+                                <TextBlock x:Name="PortableNote" Style="{StaticResource Text.Caption}" Margin="0,12,0,0" TextWrapping="Wrap" Visibility="Collapsed"/>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Style="{StaticResource Card}">
+                            <StackPanel>
                                 <TextBlock Text="{ui:T 'Резервная копия'}"/>
                                 <TextBlock Text="{ui:T 'Сохраните группы в файл, чтобы перенести их на другой компьютер'}" Style="{StaticResource Text.Caption}"/>
                                 <WrapPanel Margin="0,12,0,0">
@@ -877,8 +895,12 @@
                                     <TextBlock Text="Futuretray" Style="{StaticResource Text.Strong}"/>
                                     <TextBlock x:Name="VersionText" Style="{StaticResource Text.Caption}"/>
                                 </StackPanel>
-                                <Button Grid.Column="2" Style="{StaticResource Button.Danger}" ui:Ui.Glyph="&#xE7E8;" Content="{ui:T 'Закрыть Futuretray полностью'}"
-                                        Click="Exit_Click" VerticalAlignment="Center"/>
+                                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                    <Button Style="{StaticResource Button.Subtle}" ui:Ui.Glyph="&#xE789;" Content="{ui:T 'Что нового'}" Margin="0,0,8,0"
+                                            Click="WhatsNew_Click"/>
+                                    <Button Style="{StaticResource Button.Danger}" ui:Ui.Glyph="&#xE7E8;" Content="{ui:T 'Закрыть Futuretray полностью'}"
+                                            Click="Exit_Click"/>
+                                </StackPanel>
                             </Grid>
                         </Border>
                     </StackPanel>
@@ -1006,6 +1028,47 @@
                                     <Button Content="{ui:T 'Отмена'}" MinWidth="110" Click="CloseOverlay_Click"/>
                                     <Button x:Name="PickerAddButton" Style="{StaticResource Button.Accent}" Content="{ui:T 'Добавить'}" MinWidth="110" Margin="8,0,0,0" Click="PickerAdd_Click"/>
                                 </StackPanel>
+                            </Grid>
+                        </Border>
+                    </Grid>
+
+                    <!-- В папке синхронизации уже есть группы -->
+                    <Grid x:Name="SyncChoicePanel" Width="500" Visibility="Collapsed">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <StackPanel Margin="24,22,24,22">
+                            <TextBlock Text="{ui:T 'В этой папке уже есть группы'}" Style="{StaticResource Text.Subtitle}"/>
+                            <TextBlock Style="{StaticResource Text.Caption}" Margin="0,6,0,0" TextWrapping="Wrap"
+                                       Text="{ui:T 'Скорее всего, их сохранил Futuretray на другом компьютере. Взять их — группы этого компьютера заменятся ими (Futuretray перезапустится). Заменить — в папку запишутся группы этого компьютера.'}"/>
+                            <TextBlock x:Name="SyncChoiceFolder" Style="{StaticResource Text.Caption}" Margin="0,10,0,0" TextWrapping="Wrap"/>
+                        </StackPanel>
+                        <Border Grid.Row="1" Background="{DynamicResource Brush.DialogFooter}" CornerRadius="0,0,8,8" Padding="24,16">
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                <Button Content="{ui:T 'Отмена'}" MinWidth="96" Click="CloseOverlay_Click"/>
+                                <Button Content="{ui:T 'Заменить моими'}" MinWidth="96" Margin="8,0,0,0" Click="SyncReplace_Click"/>
+                                <Button Style="{StaticResource Button.Accent}" Content="{ui:T 'Взять из папки'}" MinWidth="96" Margin="8,0,0,0" Click="SyncUseExisting_Click"/>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+
+                    <!-- Что нового -->
+                    <Grid x:Name="WhatsNewPanel" Width="560" Visibility="Collapsed">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <StackPanel Margin="24,22,12,16">
+                            <TextBlock x:Name="WhatsNewTitle" Style="{StaticResource Text.Subtitle}" Margin="0,0,12,0"/>
+                            <ScrollViewer MaxHeight="430" VerticalScrollBarVisibility="Auto" Margin="0,12,0,0" Padding="0,0,12,0">
+                                <StackPanel x:Name="WhatsNewBody"/>
+                            </ScrollViewer>
+                        </StackPanel>
+                        <Border Grid.Row="1" Background="{DynamicResource Brush.DialogFooter}" CornerRadius="0,0,8,8" Padding="24,16">
+                            <Grid>
+                                <Button Style="{StaticResource Button.Subtle}" HorizontalAlignment="Left" Content="{ui:T 'Все изменения'}" Click="AllChanges_Click"/>
+                                <Button Style="{StaticResource Button.Accent}" HorizontalAlignment="Right" Content="{ui:T 'Понятно'}" MinWidth="110" Click="CloseOverlay_Click"/>
                             </Grid>
                         </Border>
                     </Grid>

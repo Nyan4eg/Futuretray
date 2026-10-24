@@ -55,6 +55,16 @@ internal static class DebugSnapshot
     {
         var dir = Directory!;
         System.IO.Directory.CreateDirectory(dir);
+        if (Environment.GetEnvironmentVariable("FUTURETRAY_CHECK") == "portable")
+        {
+            app.Dispatcher.BeginInvoke(async () =>
+            {
+                try { await CheckPortableAsync(app, dir); }
+                catch (Exception ex) { File.WriteAllText(Path.Combine(dir, "error.txt"), ex.ToString()); }
+                app.Shutdown();
+            });
+            return;
+        }
         if (Environment.GetEnvironmentVariable("FUTURETRAY_CHECK") == "workspace")
         {
             app.Dispatcher.BeginInvoke(async () =>
@@ -83,6 +93,8 @@ internal static class DebugSnapshot
             app.Store.Config.Groups[0].CloseGroupIds = null; app.Store.Config.Groups[0].DockEnabled = true; editor!.SnapshotScroll(1500); }));
         steps.Add(("pin", () => editor!.SnapshotShowPin()));
         steps.Add(("settings", () => editor!.SnapshotShowSettings()));
+        steps.Add(("settings-sync", () => editor!.SnapshotScrollSettings(2000)));
+        steps.Add(("whats-new", () => editor!.ShowWhatsNew(WhatsNew.Between(WhatsNew.Load(), new Version(1, 8, 0), Updater.CurrentVersion))));
         steps.Add(("empty-group", () => editor!.SnapshotSelectGroup(1)));
 
         int i = 0;
@@ -299,6 +311,46 @@ internal static class DebugSnapshot
 
         CloseAll();
         File.WriteAllText(Path.Combine(dir, "workspace.txt"), sb.ToString());
+    }
+
+    /// <summary>
+    /// Портативная копия (рядом с exe лежит portable.txt): где данные, автозапуск выключен,
+    /// синхронизация через папку и замечание чужих изменений, подмена exe при обновлении. Итог — portable.txt.
+    /// </summary>
+    private static async Task CheckPortableAsync(App app, string dir)
+    {
+        var sb = new System.Text.StringBuilder();
+        var data = Path.Combine(AppPaths.ExeDir, "Data");
+        sb.AppendLine($"portable: {AppPaths.Portable}, roaming: {AppPaths.Roaming}, log: {Log.Directory}");
+        app.Store.SaveNow();
+        sb.AppendLine($"paths-ok: {AppPaths.Portable && AppPaths.Roaming == data && Log.Directory.StartsWith(data) && File.Exists(Path.Combine(data, "config.json"))}");
+        sb.AppendLine($"no-autostart-ok: {app.Store.IsNew && !app.Store.Config.Settings.RunAtStartup}");
+
+        // Синхронизация: включаем, «другой компьютер» переписывает файл — должны заметить.
+        var sync = Path.Combine(dir, "sync");
+        bool noticed = false;
+        app.Store.ExternalChange += () => noticed = true;
+        app.Store.EnableSync(sync, useExisting: false);
+        await Task.Delay(2500);
+        sb.AppendLine($"own-save-ignored: {!noticed}");
+        var json = File.ReadAllText(Path.Combine(sync, "config.json")).Replace("#3B82F6", "#123456");
+        File.WriteAllText(Path.Combine(sync, "config.json"), json);
+        for (int t = 0; t < 30 && !noticed; t++) await Task.Delay(200);
+        sb.AppendLine($"external-change-ok: {noticed}");
+        app.Store.DisableSync();
+        sb.AppendLine($"sync-off-ok: {ConfigStore.SyncFolder == null && !File.Exists(Path.Combine(data, "sync.json"))}");
+
+        // Обновление: exe из архива встаёт на место работающего, старый отодвинут в .old.
+        var fake = Path.Combine(dir, "fake");
+        System.IO.Directory.CreateDirectory(fake);
+        File.WriteAllText(Path.Combine(fake, "Futuretray.exe"), "new version");
+        var zip = Path.Combine(dir, "update.zip");
+        if (File.Exists(zip)) File.Delete(zip);
+        System.IO.Compression.ZipFile.CreateFromDirectory(fake, zip);
+        Updater.SwapPortableExe(zip);
+        sb.AppendLine($"swap-ok: {File.ReadAllText(AppPaths.ExePath) == "new version" && File.Exists(AppPaths.ExePath + ".old")}");
+
+        File.WriteAllText(Path.Combine(dir, "portable.txt"), sb.ToString());
     }
 
     private static T? Current<T>() where T : Window => Application.Current.Windows.OfType<T>().FirstOrDefault();

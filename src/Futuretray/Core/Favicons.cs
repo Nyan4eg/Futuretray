@@ -15,8 +15,7 @@ public static partial class Favicons
     private const int MaxBytes = 1_000_000;
     private const int SavePx = 128;
 
-    private static readonly string Dir = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Futuretray", "favicons");
+    private static readonly string Dir = Path.Combine(AppPaths.Local, "favicons");
 
     private static readonly HttpClient Http = CreateClient();
     private static readonly ConcurrentDictionary<string, bool> Known = new();      // host → есть ли файл

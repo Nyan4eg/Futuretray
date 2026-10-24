@@ -4,8 +4,7 @@ public static class Log
 {
     private static readonly object Gate = new();
 
-    public static string Directory { get; internal set; } = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Futuretray", "logs");
+    public static string Directory { get; internal set; } = Path.Combine(AppPaths.Local, "logs");
 
     public static string FilePath => Path.Combine(Directory, "futuretray.log");
 

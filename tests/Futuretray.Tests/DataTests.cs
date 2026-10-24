@@ -2,6 +2,7 @@ using Futuretray.Core;
 
 namespace Futuretray.Tests;
 
+[Collection("Config")]
 public class TaskbarGroupsImportTests
 {
     private static string WriteGroup(string root, string name, string xml)
@@ -80,6 +81,7 @@ public class TaskbarGroupsImportTests
     public void EmptyFolder_GivesNothing() => Assert.Empty(TaskbarGroupsImport.Load(TestSetup.TempDir("tbg-empty")));
 }
 
+[Collection("Config")]
 public class FolderSyncTests
 {
     [Fact]
@@ -130,6 +132,7 @@ public class FolderSyncTests
     }
 }
 
+[Collection("Config")]
 public class ConfigTests
 {
     private static ConfigStore LoadFrom(string json)

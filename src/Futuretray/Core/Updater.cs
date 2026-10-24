@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.IO.Compression;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Reflection;
@@ -10,7 +11,10 @@ namespace Futuretray.Core;
 
 public sealed record UpdateInfo(Version Version, string Notes, string PageUrl, string AssetName, string AssetUrl, long Size, string? Sha256);
 
-/// <summary>Обновления из GitHub Releases: ищем установщик FuturetraySetup-*.exe в последнем релизе.</summary>
+/// <summary>
+/// Обновления из GitHub Releases: ищем установщик FuturetraySetup-*.exe в последнем релизе,
+/// а портативная версия — архив Futuretray.zip, из которого подменяет свой exe.
+/// </summary>
 public static class Updater
 {
     public const string Repository = "Nyan4eg/Futuretray";
@@ -47,8 +51,7 @@ public static class Updater
         foreach (var asset in root.GetProperty("assets").EnumerateArray())
         {
             var name = asset.GetProperty("name").GetString() ?? "";
-            if (!name.StartsWith("FuturetraySetup", StringComparison.OrdinalIgnoreCase) ||
-                !name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)) continue;
+            if (!IsOurAsset(name, AppPaths.Portable)) continue;
 
             string? sha = asset.TryGetProperty("digest", out var digest) && digest.GetString() is { } d &&
                           d.StartsWith("sha256:", StringComparison.OrdinalIgnoreCase)
@@ -100,6 +103,53 @@ public static class Updater
             }
         }
         return path;
+    }
+
+    /// <summary>Установщик — для обычной версии, архив — для портативной.</summary>
+    public static bool IsOurAsset(string name, bool portable) => portable
+        ? name.Equals("Futuretray.zip", StringComparison.OrdinalIgnoreCase)
+        : name.StartsWith("FuturetraySetup", StringComparison.OrdinalIgnoreCase) && name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase);
+
+    private static string OldExePath => AppPaths.ExePath + ".old";
+
+    /// <summary>
+    /// Портативное обновление: работающий exe Windows разрешает переименовать — отодвигаем его в .old,
+    /// кладём новый на его место и запускаем. Старый удаляется при следующем запуске.
+    /// </summary>
+    public static void ReplacePortableExe(string zipPath)
+    {
+        SwapPortableExe(zipPath);
+        Process.Start(new ProcessStartInfo(AppPaths.ExePath, "--restart --updated") { UseShellExecute = false, WorkingDirectory = AppPaths.ExeDir })?.Dispose();
+    }
+
+    /// <summary>Подмена exe без запуска новой версии (отдельно — чтобы её можно было проверить).</summary>
+    internal static void SwapPortableExe(string zipPath)
+    {
+        var dir = Path.Combine(Path.GetTempPath(), "Futuretray-update", "portable");
+        if (Directory.Exists(dir)) Directory.Delete(dir, true);
+        ZipFile.ExtractToDirectory(zipPath, dir);
+        var fresh = Path.Combine(dir, "Futuretray.exe");
+        if (!File.Exists(fresh)) throw new InvalidDataException(Loc.T("В архиве обновления нет Futuretray.exe"));
+
+        var exe = AppPaths.ExePath;
+        if (File.Exists(OldExePath)) File.Delete(OldExePath);
+        File.Move(exe, OldExePath);
+        try
+        {
+            File.Copy(fresh, exe);
+        }
+        catch
+        {
+            File.Move(OldExePath, exe); // не вышло — возвращаем как было
+            throw;
+        }
+    }
+
+    /// <summary>Убрать exe, оставшийся от прошлого портативного обновления.</summary>
+    public static void CleanupOldExe()
+    {
+        try { if (File.Exists(OldExePath)) File.Delete(OldExePath); }
+        catch { /* ещё занят — удалим в следующий раз */ }
     }
 
     /// <summary>Тихая установка: установщик сам закроет программу и запустит новую версию.</summary>
@@ -179,13 +229,27 @@ public sealed class UpdateManager : Observable
             var progress = new Progress<double>(p => Status = Loc.F("Скачиваю версию {0}… {1:P0}", update.Version.ToString(3), p));
             var path = await Updater.DownloadAsync(update, progress);
             Status = Loc.T("Устанавливаю…");
-            Updater.RunInstaller(path);
+            if (AppPaths.Portable)
+            {
+                App.Host.Store.SaveNow();
+                Updater.ReplacePortableExe(path);
+            }
+            else
+            {
+                Updater.RunInstaller(path);
+            }
             App.Host.ExitApp();
         }
         catch (Exception ex)
         {
             Log.Error(ex, "Update install");
-            Status = ex is InvalidDataException ? ex.Message : Loc.T("Не удалось скачать обновление. Попробуйте позже.");
+            Status = ex switch
+            {
+                InvalidDataException => ex.Message,
+                UnauthorizedAccessException or IOException when AppPaths.Portable =>
+                    Loc.T("Нет права записи в папку программы — скачайте новую версию вручную"),
+                _ => Loc.T("Не удалось скачать обновление. Попробуйте позже."),
+            };
             Busy = false;
         }
     }

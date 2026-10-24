@@ -385,6 +385,11 @@ public sealed class AppSettings : Observable
     public bool CheckUpdates { get => _checkUpdates; set => Set(ref _checkUpdates, value); }
     public DateTime? LastUpdateCheck { get => _lastUpdateCheck; set => Set(ref _lastUpdateCheck, value); }
 
+    private string? _lastSeenVersion;
+
+    /// <summary>Версия, чьё «Что нового» пользователь уже видел.</summary>
+    public string? LastSeenVersion { get => _lastSeenVersion; set => Set(ref _lastSeenVersion, value); }
+
     public ThemePreference Theme { get => _theme; set => Set(ref _theme, value); }
     public bool RunAtStartup { get => _runAtStartup; set => Set(ref _runAtStartup, value); }
     public bool ShowTrayIcon { get => _showTrayIcon; set => Set(ref _showTrayIcon, value); }
