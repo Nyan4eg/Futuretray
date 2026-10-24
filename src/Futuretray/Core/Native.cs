@@ -197,6 +197,20 @@ public static class Native
     [DllImport("dwmapi.dll")] public static extern int DwmGetWindowAttribute(IntPtr hWnd, int attribute, out RECT value, int size);
     public const int DWMWA_EXTENDED_FRAME_BOUNDS = 9;
     public const int SW_MAXIMIZE = 3, SW_SHOWNOACTIVATE = 4, SW_SHOWMINNOACTIVE = 7;
+
+    /// <summary>Программа не отвечает (не разбирает сообщения 5+ секунд) — синхронные вызовы к её окну повиснут.</summary>
+    [DllImport("user32.dll")] public static extern bool IsHungAppWindow(IntPtr hWnd);
+
+    [DllImport("kernel32.dll")] private static extern bool SetProcessWorkingSetSize(IntPtr process, IntPtr min, IntPtr max);
+
+    /// <summary>
+    /// Вернуть системе страницы, которые сейчас не нужны (после закрытия редактора, после запуска).
+    /// Понадобятся снова — Windows подтянет их из памяти за доли миллисекунды.
+    /// </summary>
+    public static void TrimWorkingSet()
+    {
+        try { SetProcessWorkingSetSize(System.Diagnostics.Process.GetCurrentProcess().Handle, -1, -1); } catch { }
+    }
     [DllImport("user32.dll")] public static extern bool ShowWindowAsync(IntPtr hWnd, int cmd);
 
     /// <summary>Окно скрыто DWM — например, стоит на другом виртуальном рабочем столе.</summary>

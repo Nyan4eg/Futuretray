@@ -383,11 +383,15 @@ public sealed class AppSettings : Observable
     private DateTime? _lastUpdateCheck;
 
     public bool CheckUpdates { get => _checkUpdates; set => Set(ref _checkUpdates, value); }
+    /// <remarks>Только для этого компьютера — хранится в local.json, а не в общем config.json.</remarks>
+    [JsonIgnore]
     public DateTime? LastUpdateCheck { get => _lastUpdateCheck; set => Set(ref _lastUpdateCheck, value); }
 
     private string? _lastSeenVersion;
 
     /// <summary>Версия, чьё «Что нового» пользователь уже видел.</summary>
+    /// <remarks>Только для этого компьютера — хранится в local.json, а не в общем config.json.</remarks>
+    [JsonIgnore]
     public string? LastSeenVersion { get => _lastSeenVersion; set => Set(ref _lastSeenVersion, value); }
 
     public ThemePreference Theme { get => _theme; set => Set(ref _theme, value); }

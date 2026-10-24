@@ -55,6 +55,16 @@ internal static class DebugSnapshot
     {
         var dir = Directory!;
         System.IO.Directory.CreateDirectory(dir);
+        if (Environment.GetEnvironmentVariable("FUTURETRAY_CHECK") == "memory")
+        {
+            app.Dispatcher.BeginInvoke(async () =>
+            {
+                try { await CheckMemoryAsync(app, dir); }
+                catch (Exception ex) { File.WriteAllText(Path.Combine(dir, "error.txt"), ex.ToString()); }
+                app.Shutdown();
+            });
+            return;
+        }
         if (Environment.GetEnvironmentVariable("FUTURETRAY_CHECK") == "portable")
         {
             app.Dispatcher.BeginInvoke(async () =>
@@ -329,6 +339,7 @@ internal static class DebugSnapshot
         // Синхронизация: включаем, «другой компьютер» переписывает файл — должны заметить.
         var sync = Path.Combine(dir, "sync");
         bool noticed = false;
+        app.RestartOnExternalChange = false;
         app.Store.ExternalChange += () => noticed = true;
         app.Store.EnableSync(sync, useExisting: false);
         await Task.Delay(2500);
@@ -351,6 +362,53 @@ internal static class DebugSnapshot
         sb.AppendLine($"swap-ok: {File.ReadAllText(AppPaths.ExePath) == "new version" && File.Exists(AppPaths.ExePath + ".old")}");
 
         File.WriteAllText(Path.Combine(dir, "portable.txt"), sb.ToString());
+    }
+
+    /// <summary>Память фоновой программы по этапам запуска — какой шаг сколько стоит. Итог — memory.txt.</summary>
+    private static async Task CheckMemoryAsync(App app, string dir)
+    {
+        var sb = new System.Text.StringBuilder();
+        var process = System.Diagnostics.Process.GetCurrentProcess();
+        async Task Stage(string name, int settleMs = 1500)
+        {
+            await Task.Delay(settleMs);
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            GC.Collect();
+            process.Refresh();
+            sb.AppendLine($"{name,-28} private {process.PrivateMemorySize64 / 1048576,5} MB  ws {process.WorkingSet64 / 1048576,5} MB  gc {GC.GetTotalMemory(false) / 1048576,4} MB  handles {process.HandleCount}");
+        }
+
+        await Stage("loaded");
+        app.Icons.Prewarm(app.Store.Config.Groups.SelectMany(g => g.Items));
+        await Stage("group icons", 4000);
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+        await AppIndex.RefreshAsync();
+        sb.AppendLine($"  start menu index: {AppIndex.Apps.Count} apps in {sw.ElapsedMilliseconds} ms");
+        await Stage("start menu index", 3000);
+        Native.TrimWorkingSet();
+        await Stage("after trim", 500);
+        app.ShowEditor();
+        await Stage("editor open");
+        Current<MainWindow>()?.Close();
+        await Stage("editor closed", 3000);
+        Native.TrimWorkingSet();
+        await Stage("editor closed + trim", 500);
+        // Скорость показа окна группы: первый раз (создание окна) и повторно (окно уже есть).
+        for (int i = 0; i < 4; i++)
+        {
+            foreach (var w in Application.Current.Windows.OfType<PopupWindow>()) w.HidePopup();
+            await Task.Delay(300);
+            var watch = System.Diagnostics.Stopwatch.StartNew();
+            app.ShowPopup(app.Store.Config.Groups[0].Id, new Native.POINT(900, 900));
+            var shown = watch.ElapsedMilliseconds;
+            await app.Dispatcher.InvokeAsync(() => { }, System.Windows.Threading.DispatcherPriority.Loaded);
+            sb.AppendLine($"  popup #{i + 1}: ShowPopup {shown} ms, до первой отрисовки {watch.ElapsedMilliseconds} ms");
+        }
+        await Stage("popup shown");
+        foreach (var w in Application.Current.Windows.OfType<PopupWindow>()) w.HidePopup();
+        await Stage("popup hidden", 3000);
+        File.WriteAllText(Path.Combine(dir, "memory.txt"), sb.ToString());
     }
 
     private static T? Current<T>() where T : Window => Application.Current.Windows.OfType<T>().FirstOrDefault();

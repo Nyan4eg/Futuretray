@@ -52,14 +52,15 @@ public partial class App : Application
         Store.Load();
         // Портативная версия по умолчанию не прописывается в автозапуск: её часто носят на флешке.
         if (Store.IsNew && AppPaths.Portable) Store.Config.Settings.RunAtStartup = false;
-        PendingWhatsNew = WhatsNew.Pending(Store.Config.Settings.LastSeenVersion, Store.IsNew, Updater.CurrentVersion, WhatsNew.Load());
-        if (PendingWhatsNew.Count == 0) Store.Config.Settings.LastSeenVersion = Updater.CurrentVersionText;
         Store.ExternalChange += OnExternalConfigChange;
         if (Workspaces.MigrateLegacy(Store.Config.Groups, Workspaces.CurrentProfile)) Store.ScheduleSave();
         Loc.Init(Store.Config.Settings.Language);
 #if DEBUG
         if (Environment.GetEnvironmentVariable("FUTURETRAY_LANG") == "en") Loc.Init(UiLanguage.English);
 #endif
+        // После выбора языка — иначе «Что нового» всегда было бы на русском.
+        PendingWhatsNew = WhatsNew.Pending(Store.Config.Settings.LastSeenVersion, Store.IsNew, Updater.CurrentVersion, WhatsNew.Load());
+        if (PendingWhatsNew.Count == 0) MarkWhatsNewSeen();
         ThemeManager.Initialize(Store.Config.Settings);
         ThemeManager.Changed += () =>
         {
@@ -99,6 +100,31 @@ public partial class App : Application
         Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, AfterStartup);
     }
 
+    private PopupWindow CreatePopup(Group group)
+    {
+        var popup = new PopupWindow(group);
+        popup.Hidden += p => _lastHidden[p.Group.Id] = Environment.TickCount64;
+        _popups[group.Id] = popup;
+        return popup;
+    }
+
+    private DispatcherTimer? _trimTimer;
+
+    /// <summary>Вернуть системе память чуть погодя — когда редактор закрыт и всё улеглось.</summary>
+    private void TrimSoon(TimeSpan delay)
+    {
+        _trimTimer?.Stop();
+        _trimTimer = new DispatcherTimer { Interval = delay };
+        _trimTimer.Tick += (_, _) =>
+        {
+            _trimTimer!.Stop();
+            if (_editor?.IsVisible == true) return;
+            GC.Collect();
+            Native.TrimWorkingSet();
+        };
+        _trimTimer.Start();
+    }
+
     private void AfterStartup()
     {
         try
@@ -107,6 +133,7 @@ public partial class App : Application
             Shortcuts.EnsureAppShortcut();
             Icons.Prewarm(Store.Config.Groups.SelectMany(g => g.Items));
             _ = AppIndex.RefreshAsync();
+            TrimSoon(TimeSpan.FromSeconds(30));
             if (AppPaths.Portable) Updater.CleanupOldExe();
             Shortcuts.RepairAll(Store.Config.Groups.ToList());
             Updates.Start();
@@ -194,9 +221,7 @@ public partial class App : Application
 
         if (popup == null)
         {
-            popup = new PopupWindow(group);
-            popup.Hidden += p => _lastHidden[p.Group.Id] = Environment.TickCount64;
-            _popups[group.Id] = popup;
+            popup = CreatePopup(group);
         }
         popup.ShowAt(cursor);
     }
@@ -206,7 +231,11 @@ public partial class App : Application
         if (_editor == null)
         {
             _editor = new MainWindow();
-            _editor.Closed += (_, _) => _editor = null;
+            _editor.Closed += (_, _) =>
+            {
+                _editor = null;
+                TrimSoon(TimeSpan.FromSeconds(3));
+            };
         }
         _editor.Show();
         if (_editor.WindowState == WindowState.Minimized) _editor.WindowState = WindowState.Normal;
@@ -328,21 +357,32 @@ public partial class App : Application
     public void MarkWhatsNewSeen()
     {
         PendingWhatsNew = [];
-        Store.Config.Settings.LastSeenVersion = Updater.CurrentVersionText;
+        // Никогда не понижаем: иначе после запуска старой копии «Что нового» показалось бы снова.
+        var seen = Store.Config.Settings.LastSeenVersion;
+        if (seen == null || !Version.TryParse(seen, out var v) || v < Updater.CurrentVersion)
+            Store.Config.Settings.LastSeenVersion = Updater.CurrentVersionText;
     }
 
-    /// <summary>Группы поменялись на другом компьютере: перечитываем их перезапуском (при открытом редакторе — по кнопке).</summary>
+    /// <summary>
+    /// Группы поменялись на другом компьютере (или ожила папка синхронизации). Хранилище уже ничего
+    /// не сохраняет, чтобы не затереть их устаревшими, — перечитываем перезапуском. Открытый редактор
+    /// откроется снова на той же группе.
+    /// </summary>
     private void OnExternalConfigChange()
     {
-        if (_editor?.IsVisible == true)
-            _editor.ShowToast(Loc.T("Группы изменились на другом компьютере"), Loc.T("Обновить"), Restart);
-        else
-            Restart();
+        if (RestartOnExternalChange) Restart();
     }
 
+    /// <summary>Живая проверка синхронизации выключает перезапуск, чтобы не плодить копии программы.</summary>
+    internal bool RestartOnExternalChange { get; set; } = true;
+
+    /// <summary>Перезапуск: редактор снова откроется, только если он был открыт.</summary>
     public void Restart()
     {
-        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(ShortcutManager.ExePath, "--restart") { UseShellExecute = true })?.Dispose();
+        var args = _editor?.IsVisible == true
+            ? $"--restart --editor {_editor.SelectedGroupId}".TrimEnd()
+            : "--restart --background";
+        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(ShortcutManager.ExePath, args) { UseShellExecute = true })?.Dispose();
         ExitApp();
     }
 

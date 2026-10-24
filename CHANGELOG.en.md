@@ -1,5 +1,25 @@
 # Changelog
 
+## 1.10.1
+
+- **More reliable sync**: if the folder is unavailable at startup (OneDrive not running yet, the file not
+  downloaded or damaged), Futuretray works from a local copy and writes nothing to the folder until it
+  comes back. Changes from another computer are no longer overwritten on restart, a failed write is
+  retried, and the update-check time no longer syncs — computers don't restart each other.
+- After a restart (language change, changes from another computer) the editor opens only if it was open.
+- The **portable version** no longer gets in the way of an installed copy: its own startup entry, its own
+  command channel, and it leaves the Start menu shortcut alone. A failed update rolls back to the working exe.
+- **Window layouts**: no hang on an app that isn't responding and no focus stealing; minimized apps keep
+  their saved place on “Remember layout”; two entries for one app (say, browser profiles) both start;
+  running “Open all” again doesn't start just-opened apps, links and folders a second time; failed
+  launches are reported.
+- Switching between three or more windows of an app cycles through all of them.
+- Apps whose main window is owned by a helper window are recognised (some Delphi, Java, Qt apps).
+- Search: Settings and other Store app windows are added to groups correctly.
+- **Much less background memory**: Start menu app icons load only for the results shown, and memory is
+  handed back to the system after the editor closes.
+- What's new is in English for the English interface.
+
 ## 1.10.0
 
 - **What's new after an update**: once Futuretray updates itself, the editor shows what the new version

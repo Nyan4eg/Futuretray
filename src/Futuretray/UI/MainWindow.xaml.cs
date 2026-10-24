@@ -1105,6 +1105,9 @@ public partial class MainWindow : Window
 
     private void Exit_Click(object sender, RoutedEventArgs e) => _app.ExitApp();
 
+    /// <summary>Какая группа открыта — чтобы после перезапуска вернуться к ней.</summary>
+    public string? SelectedGroupId => _group?.Id;
+
     // ================= Что нового =================
 
     private void WhatsNew_Click(object sender, RoutedEventArgs e) =>

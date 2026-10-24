@@ -61,7 +61,11 @@ public sealed record HostCommand(CommandKind Kind, string? GroupId = null, int X
 /// <summary>Связь «запускатель → фоновый хост» через именованный канал текущего пользователя.</summary>
 public static class Ipc
 {
-    private static readonly string Suffix = $"{Environment.UserName}.{Process.GetCurrentProcess().SessionId}";
+    // Портативная копия — отдельная программа со своими данными: своя «защёлка» хоста и свой канал,
+    // чтобы не передавать команды установленной версии (и не закрываться её установщиком).
+    private static readonly string Suffix = $"{Environment.UserName}.{Process.GetCurrentProcess().SessionId}" +
+        (AppPaths.Portable ? "." + Convert.ToHexString(System.Security.Cryptography.SHA1.HashData(
+            System.Text.Encoding.UTF8.GetBytes(AppPaths.ExeDir.ToLowerInvariant())))[..10] : "");
     public static string PipeName => "Futuretray.Pipe." + Suffix;
     public static string MutexName => @"Local\Futuretray.Host." + Suffix;
 

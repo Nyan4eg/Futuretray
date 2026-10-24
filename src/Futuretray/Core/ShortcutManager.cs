@@ -145,6 +145,8 @@ public sealed class ShortcutManager
     /// <summary>Ярлык самого Futuretray в меню «Пуск», чтобы программу было легко найти.</summary>
     public void EnsureAppShortcut()
     {
+        // Ярлык «Futuretray» в «Пуске» — у установленной версии; портативная копия его не перехватывает.
+        if (AppPaths.Portable) return;
         try
         {
             var path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Programs), "Futuretray.lnk");

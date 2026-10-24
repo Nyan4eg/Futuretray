@@ -12,8 +12,10 @@ namespace Futuretray.UI;
 public enum SearchKind { GroupItem, Window, App }
 
 /// <summary>Строка выдачи: программа из группы, открытое окно или приложение из меню «Пуск».</summary>
-public sealed class SearchResult
+public sealed class SearchResult : Observable
 {
+    private ImageSource? _icon;
+
     public SearchResult(SearchKind kind, LaunchItem item, string name, string subtitle, int score, Group? group = null, IntPtr window = default)
     {
         Kind = kind;
@@ -35,7 +37,16 @@ public sealed class SearchResult
     public IntPtr Window { get; }
 
     public string? GroupName => Group?.Name;
-    public ImageSource? Icon => Item.Icon;
+
+    /// <summary>У программ из групп иконка уже в кэше; окна и приложения «Пуска» получают её в фоне.</summary>
+    public ImageSource? Icon => Kind == SearchKind.GroupItem ? Item.Icon : _icon;
+
+    public void LoadIcon(Func<bool> needed) =>
+        IconService.Current?.GetAsync(Item, image =>
+        {
+            _icon = image;
+            OnPropertyChanged(nameof(Icon));
+        }, needed);
     public ImageSource? GroupIcon => Group?.Icon;
     public bool IsRunning => Kind != SearchKind.Window && RunningApps.Current?.IsRunning(Item) == true;
 }
@@ -52,6 +63,7 @@ public partial class SearchWindow : Window
     private ResourceDictionary? _theme;
     private bool _menuOpen;
     private DispatcherTimer? _statusTimer;
+    private volatile int _generation;
 
     public SearchWindow()
     {
@@ -149,12 +161,7 @@ public partial class SearchWindow : Window
                     var app = AppIndex.AppName(w.Path);
                     int score = WindowScore(title, app, query);
                     if (score == 0) continue;
-                    // Что добавлять в группу: обычную программу — по exe, приложение Store — по AppUserModelID.
-                    var appId = w.ProcessAppId ?? w.AppId;
-                    bool store = w.Path == null || w.Path.Contains(@"\WindowsApps\", StringComparison.OrdinalIgnoreCase);
-                    var item = store && appId != null
-                        ? new LaunchItem { Kind = ItemKind.ShellApp, Target = appId, Name = app }
-                        : ItemFactory.FromPath(w.Path ?? "");
+                    if (WindowItem(w, app) is not { } item) continue;
                     windows.Add(new SearchResult(SearchKind.Window, item, title,
                         Loc.F("Окно · {0}", app), score * 10000 - z, window: w.Handle));
                 }
@@ -176,6 +183,9 @@ public partial class SearchWindow : Window
         }
 
         var top = results.OrderByDescending(r => r.Score).Take(MaxResults).ToList();
+        int generation = ++_generation;
+        foreach (var result in top.Where(r => r.Kind != SearchKind.GroupItem))
+            result.LoadIcon(() => generation == _generation); // пока печатают дальше, старые иконки не грузим
         Results.ItemsSource = top;
         Results.SelectedIndex = top.Count > 0 ? 0 : -1;
         EmptyText.Visibility = top.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
@@ -184,6 +194,27 @@ public partial class SearchWindow : Window
         // Второй замер — после того как список пересоздал строки, иначе окно не уменьшается.
         Dispatcher.BeginInvoke(UpdateSize, DispatcherPriority.Loaded);
         Dispatcher.BeginInvoke(UpdateSize, DispatcherPriority.ContextIdle);
+    }
+
+    private readonly Dictionary<string, LaunchItem> _windowItems = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Что запускать и добавлять в группу для окна: обычную программу — по exe, приложение Store и окна,
+    /// которые рисует ApplicationFrameHost (Параметры и т. п.), — по AppUserModelID. Без того и другого — ничего.
+    /// Кэшируется: на каждое нажатие клавиши читать версию exe незачем.
+    /// </summary>
+    private LaunchItem? WindowItem(AppWindow w, string app)
+    {
+        var appId = w.AppId ?? w.ProcessAppId;
+        bool hosted = w.Path == null || w.Path.Contains(@"\WindowsApps\", StringComparison.OrdinalIgnoreCase) ||
+                      w.Path.EndsWith(@"\ApplicationFrameHost.exe", StringComparison.OrdinalIgnoreCase);
+        if (hosted && appId == null) return null;
+        var key = hosted ? "app|" + appId : "exe|" + w.Path;
+        if (!_windowItems.TryGetValue(key, out var item))
+            _windowItems[key] = item = hosted
+                ? new LaunchItem { Kind = ItemKind.ShellApp, Target = appId!, Name = app }
+                : ItemFactory.FromPath(w.Path!);
+        return item;
     }
 
     private static bool IsInGroups(InstalledApp app, List<LaunchItem> items) => items.Any(i =>

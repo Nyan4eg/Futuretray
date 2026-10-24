@@ -26,6 +26,42 @@ public sealed class IconService
     public BitmapSource Get(LaunchItem item, int px) =>
         _cache.GetOrAdd($"{item.IconKey}#{px}", _ => Load(item, px));
 
+    private readonly BlockingCollection<(LaunchItem Item, Func<bool> Needed, Action<BitmapSource> Done)> _queue = new();
+    private Thread? _worker;
+
+    /// <summary>
+    /// Иконка без задержки интерфейса: из кэша сразу, иначе — в фоновом потоке, и <paramref name="done"/>
+    /// придёт в потоке интерфейса. Пока очередь дошла, иконка могла стать не нужна (<paramref name="needed"/>).
+    /// </summary>
+    public void GetAsync(LaunchItem item, Action<BitmapSource> done, Func<bool> needed)
+    {
+        if (_cache.TryGetValue($"{item.IconKey}#{TilePx}", out var cached))
+        {
+            done(cached);
+            return;
+        }
+        if (_worker == null)
+        {
+            _worker = new Thread(() =>
+            {
+                foreach (var (queued, stillNeeded, callback) in _queue.GetConsumingEnumerable())
+                {
+                    if (!stillNeeded()) continue;
+                    try
+                    {
+                        var image = Get(queued, TilePx);
+                        Application.Current?.Dispatcher.BeginInvoke(() => callback(image));
+                    }
+                    catch (Exception ex) { Log.Error(ex, "Icon " + queued.Name); }
+                }
+            })
+            { IsBackground = true, Name = "Icons on demand", Priority = ThreadPriority.BelowNormal };
+            _worker.SetApartmentState(ApartmentState.STA);
+            _worker.Start();
+        }
+        _queue.Add((item, needed, done));
+    }
+
     public BitmapSource? GetShell(string parsingName, int px)
     {
         var key = $"shell|{parsingName}#{px}";

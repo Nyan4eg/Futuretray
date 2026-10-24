@@ -119,7 +119,16 @@ public static class Updater
     public static void ReplacePortableExe(string zipPath)
     {
         SwapPortableExe(zipPath);
-        Process.Start(new ProcessStartInfo(AppPaths.ExePath, "--restart --updated") { UseShellExecute = false, WorkingDirectory = AppPaths.ExeDir })?.Dispose();
+        try
+        {
+            Process.Start(new ProcessStartInfo(AppPaths.ExePath, "--restart --updated") { UseShellExecute = false, WorkingDirectory = AppPaths.ExeDir })?.Dispose();
+        }
+        catch
+        {
+            // Новый exe не запустился (например, его забрал антивирус) — возвращаем рабочий.
+            RollBackPortableExe();
+            throw;
+        }
     }
 
     /// <summary>Подмена exe без запуска новой версии (отдельно — чтобы её можно было проверить).</summary>
@@ -140,8 +149,23 @@ public static class Updater
         }
         catch
         {
-            File.Move(OldExePath, exe); // не вышло — возвращаем как было
+            RollBackPortableExe(); // не вышло — возвращаем как было
             throw;
+        }
+    }
+
+    /// <summary>Убрать недописанный новый exe и вернуть старый на место.</summary>
+    private static void RollBackPortableExe()
+    {
+        try
+        {
+            if (!File.Exists(OldExePath)) return;
+            if (File.Exists(AppPaths.ExePath)) File.Delete(AppPaths.ExePath);
+            File.Move(OldExePath, AppPaths.ExePath);
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Portable update rollback");
         }
     }
 

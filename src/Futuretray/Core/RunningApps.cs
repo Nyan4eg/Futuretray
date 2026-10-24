@@ -61,6 +61,9 @@ public sealed class RunningApps
 
     public bool IsRunning(LaunchItem item) => WindowsFor(item).Count > 0;
 
+    /// <summary>Узнаём ли мы окна этого элемента вообще (у ссылок, папок и документов — нет).</summary>
+    public bool CanTrack(LaunchItem item) => SpecFor(item) != null;
+
     public bool IsActive(LaunchItem item) =>
         LastExternalForeground != IntPtr.Zero && WindowsFor(item).Contains(LastExternalForeground);
 
@@ -78,14 +81,19 @@ public sealed class RunningApps
         if (windows.Count == 1)
         {
             var window = windows[0];
-            if (window == foreground && !Native.IsIconic(window)) Native.ShowWindow(window, Native.SW_MINIMIZE);
+            if (window == foreground && !Native.IsIconic(window)) Native.ShowWindowAsync(window, Native.SW_MINIMIZE);
             else Activate(window);
+        }
+        else if (!windows.Contains(foreground))
+        {
+            Activate(windows[0]); // верхнее по Z — с которым работали последним
         }
         else
         {
-            // Окна идут в порядке Z (сверху вниз): из активного переходим к следующему.
-            int index = windows.ToList().IndexOf(foreground);
-            Activate(windows[index < 0 ? 0 : (index + 1) % windows.Count]);
+            // По кругу в постоянном порядке: порядок Z меняется при каждом переключении,
+            // и по нему мы бы бегали только между двумя верхними окнами.
+            var ordered = windows.OrderBy(w => w.ToInt64()).ToList();
+            Activate(ordered[(ordered.IndexOf(foreground) + 1) % ordered.Count]);
         }
         _debounce.Stop();
         _debounce.Start();
@@ -100,7 +108,9 @@ public sealed class RunningApps
 
     public static void Activate(IntPtr window)
     {
-        if (Native.IsIconic(window)) Native.ShowWindow(window, Native.SW_RESTORE);
+        // Асинхронно: зависшая программа не должна подвесить Futuretray.
+        if (Native.IsIconic(window)) Native.ShowWindowAsync(window, Native.SW_RESTORE);
+        if (Native.IsHungAppWindow(window)) return;
         if (Native.SetForegroundWindow(window)) return;
 
         // Обход защиты от «кражи фокуса»: временно подключаемся к вводу активного окна.
@@ -145,8 +155,10 @@ public sealed class RunningApps
         if (!Native.IsWindowVisible(hwnd)) return false;
         Native.GetWindowThreadProcessId(hwnd, out pid);
         if (pid == _ownPid) return false;
-        if (Native.GetWindow(hwnd, Native.GW_OWNER) != IntPtr.Zero) return false;
         var ex = (long)Native.GetWindowLongPtr(hwnd, Native.GWL_EXSTYLE);
+        // Окно с владельцем на панели задач не видно — кроме тех, что сами просят кнопку (WS_EX_APPWINDOW):
+        // так устроены главные окна некоторых программ на Delphi, Java и Qt.
+        if (Native.GetWindow(hwnd, Native.GW_OWNER) != IntPtr.Zero && (ex & Native.WS_EX_APPWINDOW) == 0) return false;
         if ((ex & Native.WS_EX_TOOLWINDOW) != 0) return false;
         if (Native.GetWindowTextLength(hwnd) == 0) return false;
 

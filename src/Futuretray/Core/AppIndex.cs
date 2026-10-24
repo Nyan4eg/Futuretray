@@ -33,8 +33,7 @@ public static class AppIndex
             var apps = await ItemFactory.EnumerateInstalledAsync();
             Apps = apps.Where(a => !IsJunk(a.Name, a.FilePath)).ToList();
             _loadedAt = DateTime.Now;
-            // Значки — заранее и в фоне, чтобы выдача не подтормаживала на первом наборе.
-            IconService.Current?.Prewarm(Apps.Select(ItemFactory.FromInstalled));
+            // Значки здесь не грузим: все сразу — это ~75 МБ памяти навсегда. Поиск достаёт их по мере показа.
             Updated?.Invoke();
         }
         catch (Exception ex)

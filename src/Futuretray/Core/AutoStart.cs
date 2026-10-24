@@ -5,7 +5,8 @@ namespace Futuretray.Core;
 public static class AutoStart
 {
     private const string RunKey = @"Software\Microsoft\Windows\CurrentVersion\Run";
-    private const string ValueName = "Futuretray";
+    // Своё имя у портативной копии: иначе, выключив у себя автозапуск, она стёрла бы его у установленной.
+    private static string ValueName => AppPaths.Portable ? "Futuretray (portable)" : "Futuretray";
 
     public static void Sync(bool enabled)
     {

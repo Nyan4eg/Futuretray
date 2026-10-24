@@ -23,16 +23,17 @@ internal static class Program
             return RunHost(new HostCommand(CommandKind.Background));
         }
 #endif
-        // Перезапуск: ждём, пока старая копия отпустит «замок» хоста, и становимся хостом сами.
-        if (args.Contains("--restart", StringComparer.OrdinalIgnoreCase)) WaitForHostExit();
+        bool restart = args.Contains("--restart", StringComparer.OrdinalIgnoreCase);
 
         var command = HostCommand.Parse(args);
         if (command.Kind == CommandKind.Popup && Native.GetCursorPos(out var cursor))
             command = command with { X = cursor.X, Y = cursor.Y };
 
-        bool isHost;
-        using (var hostMutex = new Mutex(true, Ipc.MutexName, out isHost))
+        using (var hostMutex = new Mutex(false, Ipc.MutexName))
         {
+            // Перезапуск: ждём, пока старая копия отпустит «замок» хоста (сохранение в облако может
+            // занять время), и становимся хостом сами — а не отдаём команду закрывающейся копии.
+            bool isHost = TryOwn(hostMutex, restart ? TimeSpan.FromSeconds(30) : TimeSpan.Zero);
             if (!isHost)
             {
                 // Разрешаем хосту вывести окно на передний план: нас запустил Проводник
@@ -56,14 +57,28 @@ internal static class Program
                 return 0;
             }
 
-            return RunHost(command);
+            try
+            {
+                return RunHost(command);
+            }
+            finally
+            {
+                try { hostMutex.ReleaseMutex(); } catch { }
+            }
         }
+    }
+
+    /// <summary>Стать хостом. Брошенная «защёлка» (прошлая копия упала) тоже наша.</summary>
+    private static bool TryOwn(Mutex mutex, TimeSpan wait)
+    {
+        try { return mutex.WaitOne(wait); }
+        catch (AbandonedMutexException) { return true; }
     }
 
     /// <summary>Ждём, пока хост действительно завершится и отпустит файлы (нужно установщику).</summary>
     private static void WaitForHostExit()
     {
-        for (int i = 0; i < 60; i++)
+        for (int i = 0; i < 150; i++)
         {
             using var probe = new Mutex(false, Ipc.MutexName, out bool createdNew);
             if (createdNew) return;

@@ -19,7 +19,10 @@ public static class Workspaces
     /// <param name="Profile">Набор мониторов, чьё расположение применили; null — расположения нет, только запуск.</param>
     /// <param name="ExactProfile">false — для текущих мониторов ничего не запомнено, взяли ближайшее.</param>
     public sealed record ArrangeResult(int Launched, int Placed, IReadOnlyList<LaunchItem> NotFound,
-        IReadOnlyList<LaunchItem> Denied, string? Profile = null, bool ExactProfile = true);
+        IReadOnlyList<LaunchItem> Denied, string? Profile = null, bool ExactProfile = true,
+        IReadOnlyList<(LaunchItem Item, string Error)>? Failed = null);
+
+    public enum ApplyResult { Placed, Denied, NotNow }
 
     // ================= Геометрия (чистые функции — их проверяют тесты) =================
 
@@ -128,8 +131,9 @@ public static class Workspaces
 
     public static string Describe(ArrangeResult r)
     {
-        if (r.Profile == null) return Loc.F("Запущено программ: {0}", r.Launched);
-        var text = Loc.F("Разложено окон: {0}", r.Placed);
+        var failed = r.Failed is { Count: > 0 } f ? Loc.F(" · не удалось запустить: {0}", Names(f.Select(x => x.Item))) : "";
+        if (r.Profile == null) return Loc.F("Запущено программ: {0}", r.Launched) + failed;
+        var text = Loc.F("Разложено окон: {0}", r.Placed) + failed;
         if (!r.ExactProfile) text += Loc.F(" · для этих мониторов места не запомнены — взяты с {0}", ScreensText(r.Profile));
         if (r.NotFound.Count > 0) text += Loc.F(" · не дождался окна: {0}", Names(r.NotFound));
         if (r.Denied.Count > 0) text += Loc.F(" · Windows не дала подвинуть (запущены от администратора): {0}", Names(r.Denied));
@@ -178,7 +182,7 @@ public static class Workspaces
         {
             var layouts = new Dictionary<string, WindowLayout>(item.Layouts ?? new());
             if (found.TryGetValue(item, out var layout)) layouts[profile] = layout;
-            else if (!layouts.Remove(profile)) continue;
+            else if (minimized.Contains(item) || !layouts.Remove(profile)) continue; // свёрнутые сохраняют прежнее место
             item.Layouts = layouts;
         }
         return new CaptureResult(found.Count, notRunning, minimized);
@@ -280,16 +284,24 @@ public static class Workspaces
         return minimized;
     }
 
-    /// <returns>false — Windows не дала подвинуть окно (обычно программа запущена от администратора).</returns>
-    public static bool Apply(IntPtr window, WindowLayout layout, IReadOnlyList<MonitorInfo>? monitors = null)
+    /// <returns>
+    /// Denied — Windows не дала подвинуть окно (обычно программа запущена от администратора);
+    /// NotNow — окно уже закрылось или программа не отвечает: попробуем на следующем шаге.
+    /// </returns>
+    public static ApplyResult Apply(IntPtr window, WindowLayout layout, IReadOnlyList<MonitorInfo>? monitors = null)
     {
+        if (!Native.IsWindow(window)) return ApplyResult.NotNow;
+        // Синхронные вызовы к зависшей программе повесили бы и Futuretray.
+        if (Native.IsHungAppWindow(window)) return ApplyResult.NotNow;
         var work = FindMonitor(layout, monitors ?? Monitors.All()).Work;
         var target = ToRect(layout, work);
         // Пустой SetWindowPos — проба прав: окна программ от администратора не трогаем вовсе,
         // иначе развернули бы свёрнутое, так и не сумев его подвинуть.
         if (!Native.SetWindowPos(window, IntPtr.Zero, 0, 0, 0, 0,
-                Native.SWP_NOMOVE | Native.SWP_NOSIZE | Native.SWP_NOZORDER | Native.SWP_NOACTIVATE)) return false;
-        if (Native.IsIconic(window) || Native.IsZoomed(window)) Native.ShowWindow(window, Native.SW_RESTORE);
+                Native.SWP_NOMOVE | Native.SWP_NOSIZE | Native.SWP_NOZORDER | Native.SWP_NOACTIVATE))
+            return Native.IsWindow(window) ? ApplyResult.Denied : ApplyResult.NotNow;
+        // Без активации: раскладка не должна выдёргивать фокус из окна, в котором пользователь уже работает.
+        if (Native.IsIconic(window) || Native.IsZoomed(window)) Native.ShowWindow(window, Native.SW_SHOWNOACTIVATE);
 
         // Видимая граница и прямоугольник окна различаются на невидимые рамки — учитываем их.
         Native.GetWindowRect(window, out var outer);
@@ -302,8 +314,20 @@ public static class Workspaces
             target.Width + left + right, target.Height + top + bottom,
             Native.SWP_NOZORDER | Native.SWP_NOACTIVATE);
         if (ok && layout.Maximized) Native.ShowWindow(window, Native.SW_MAXIMIZE);
-        return ok;
+        return ok ? ApplyResult.Placed : Native.IsWindow(window) ? ApplyResult.Denied : ApplyResult.NotNow;
     }
+
+    /// <summary>
+    /// Что Futuretray сам запустил недавно: у программы ещё может не быть окна. Повторное «Открыть все»
+    /// (или другая группа с той же программой) в эти секунды не запускает её второй раз.
+    /// </summary>
+    private static readonly Dictionary<string, DateTime> RecentlyLaunched = new(StringComparer.OrdinalIgnoreCase);
+    private static readonly TimeSpan StillStarting = TimeSpan.FromSeconds(20);
+
+    private static string LaunchKey(LaunchItem item) => $"{item.Kind}|{item.Target}|{item.Arguments}";
+
+    private static bool StartedRecently(LaunchItem item) =>
+        RecentlyLaunched.TryGetValue(LaunchKey(item), out var at) && DateTime.Now - at < StillStarting;
 
     private sealed class OpenAllSession
     {
@@ -318,6 +342,7 @@ public static class Workspaces
         private readonly HashSet<LaunchItem> _finished = new();
         private readonly HashSet<LaunchItem> _denied = new();
         private readonly HashSet<LaunchItem> _launched = new();
+        private readonly List<(LaunchItem, string)> _failed = new();
         private IReadOnlyList<MonitorInfo> _monitors = [];
         private string? _profile;
         private bool _exact;
@@ -345,11 +370,25 @@ public static class Workspaces
                     if (item.Layouts?.TryGetValue(_profile, out var layout) == true) _layouts[item] = layout;
 
             // Очередь запуска — в порядке списка; пауза отсчитывается от предыдущей запущенной программы.
-            // Уже открытые программы не запускаем второй раз и их паузу не ждём.
+            // Уже открытые программы не запускаем второй раз и их паузу не ждём. Окна раздаются по порядку:
+            // второй элемент той же программы (другой профиль браузера) открыт, только если есть ещё окно.
+            var claimed = new HashSet<IntPtr>();
+            var items = _group.Items.ToList();
+            bool trackable(LaunchItem i) => running?.CanTrack(i) == true;
+            // Ссылки, папки и документы не отследить: если пространство уже открыто (что-то из
+            // отслеживаемого запущено), повторное «Открыть все» не плодит вкладки и окна Проводника.
+            bool alreadyOpen = items.Any(i => trackable(i) && running!.IsRunning(i));
             var due = _lastLaunch = DateTime.Now;
-            foreach (var item in _group.Items.ToList())
+            foreach (var item in items)
             {
-                if (running?.IsRunning(item) == true)
+                var free = running?.WindowsFor(item).FirstOrDefault(w => !claimed.Contains(w)) ?? IntPtr.Zero;
+                if (free != IntPtr.Zero)
+                {
+                    claimed.Add(free);
+                    _ready.Add(item);
+                    continue;
+                }
+                if (StartedRecently(item) || (alreadyOpen && !trackable(item)))
                 {
                     _ready.Add(item);
                     continue;
@@ -369,10 +408,15 @@ public static class Workspaces
             while (_queue.Count > 0 && _queue.Peek().Due <= now)
             {
                 var item = _queue.Dequeue().Item;
-                if (Launcher.Launch(item) == null)
+                if (Launcher.Launch(item) is { } error)
+                {
+                    _failed.Add((item, error));
+                }
+                else
                 {
                     _launched.Add(item);
                     _ready.Add(item);
+                    RecentlyLaunched[LaunchKey(item)] = now;
                 }
                 _lastLaunch = now;
             }
@@ -407,6 +451,7 @@ public static class Workspaces
                 {
                     _finished.Remove(item);
                     _placed.Remove(item);
+                    _denied.Remove(item);
                 }
 
             // Окна, уже отданные другим элементам: две копии одной программы не делят одно окно.
@@ -430,14 +475,21 @@ public static class Workspaces
                 if (!had || window != placed.Window)
                 {
                     // Первое окно — или программа заменила заставку настоящим окном: ставим заново.
-                    if (Apply(window, layout, _monitors)) _denied.Remove(item);
+                    var result = Apply(window, layout, _monitors);
+                    if (result == ApplyResult.NotNow)
+                    {
+                        claimed.Remove(window);
+                        if (had) claimed.Add(placed.Window);
+                        continue; // закрылось или не отвечает — попробуем на следующем шаге
+                    }
+                    if (result == ApplyResult.Placed) _denied.Remove(item);
                     else _denied.Add(item);
                     _placed[item] = (window, now);
                 }
                 else if (now - placed.At >= SecondPass)
                 {
                     // Второй проход: программа могла сама восстановить свою позицию после показа.
-                    if (!_denied.Contains(item)) Apply(window, layout, _monitors);
+                    if (!_denied.Contains(item) && Apply(window, layout, _monitors) == ApplyResult.NotNow) continue;
                     _finished.Add(item);
                 }
             }
@@ -447,8 +499,8 @@ public static class Workspaces
         {
             _reported = true;
             var notFound = _layouts.Keys.Where(i => !_placed.ContainsKey(i)).ToList();
-            var denied = _denied.ToList();
-            _done?.Invoke(new ArrangeResult(_launched.Count, _placed.Count - denied.Count, notFound, denied, _profile, _exact));
+            var denied = _denied.Where(_placed.ContainsKey).ToList();
+            _done?.Invoke(new ArrangeResult(_launched.Count, _placed.Count - denied.Count, notFound, denied, _profile, _exact, _failed.ToList()));
         }
     }
 }

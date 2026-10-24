@@ -276,6 +276,8 @@ internal static class English
         ["Папка для синхронизации групп"] = "Folder to sync groups through",
         ["Готово: группы сохранены в папку синхронизации"] = "Done: groups are saved to the sync folder",
         ["Не удалось включить синхронизацию: "] = "Couldn't turn on sync: ",
+        ["Не удалось записать в папку {0}"] = "Couldn't write to the folder {0}",
+        [" · не удалось запустить: {0}"] = " · couldn't start: {0}",
         ["Синхронизация выключена — группы остались на этом компьютере"] = "Sync is off — the groups stay on this computer",
         ["Портативная версия: настройки, значки и журнал хранятся рядом с программой — {0}"] =
             "Portable version: settings, icons and the log are kept next to the program — {0}",

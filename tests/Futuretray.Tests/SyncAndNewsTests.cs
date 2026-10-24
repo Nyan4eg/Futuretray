@@ -50,6 +50,108 @@ public class SyncTests
         local.SaveNow();
     }
 
+    [Theory]
+    [InlineData("missing")]  // OneDrive ещё не запущен при входе в Windows
+    [InlineData("broken")]   // недокачанный или испорченный файл с другого компьютера
+    public void UnavailableSyncFolder_NeverGetsOverwritten(string kind)
+    {
+        var store = new ConfigStore();
+        store.Load();
+        store.Config.Groups.Add(new Group { Name = "Mine" });
+        var folder = TestSetup.TempDir("sync");
+        store.EnableSync(folder, useExisting: false);
+        var shared = Path.Combine(folder, "config.json");
+        try
+        {
+            if (kind == "missing")
+            {
+                Directory.Delete(folder, true);
+            }
+            else
+            {
+                File.WriteAllText(shared, "{ \"Groups\": [ {\"Name\": \"half");
+            }
+
+            var next = new ConfigStore();
+            next.Load();
+            Assert.True(next.SyncUnavailable);
+            Assert.Contains(next.Config.Groups, g => g.Name == "Mine"); // локальная копия
+            next.Config.Groups.Add(new Group { Name = "Offline edit" });
+            Assert.True(next.SaveNow());
+
+            if (kind == "missing") Assert.False(Directory.Exists(folder));
+            else Assert.StartsWith("{ \"Groups\": [ {\"Name\": \"half", File.ReadAllText(shared));
+        }
+        finally
+        {
+            Directory.CreateDirectory(folder);
+            store.DisableSync();
+            Cleanup();
+        }
+    }
+
+    [Fact]
+    public void FrozenStore_DoesNotSaveStaleGroups()
+    {
+        var store = new ConfigStore();
+        store.Load();
+        store.SaveNow();
+        var before = File.ReadAllText(ConfigStore.ConfigPath);
+        store.Freeze();
+        store.Config.Groups.Add(new Group { Name = "Stale" });
+        store.SaveNow();
+        Assert.Equal(before, File.ReadAllText(ConfigStore.ConfigPath));
+    }
+
+    [Fact]
+    public void PerComputerSettings_StayOutOfSharedConfig()
+    {
+        var store = new ConfigStore();
+        store.Load();
+        store.Config.Settings.LastSeenVersion = "9.9.9";
+        store.Config.Settings.LastUpdateCheck = new DateTime(2026, 1, 2);
+        store.SaveNow();
+        Assert.DoesNotContain("LastSeenVersion", File.ReadAllText(ConfigStore.ConfigPath));
+        Assert.DoesNotContain("LastUpdateCheck", File.ReadAllText(ConfigStore.ConfigPath));
+
+        var again = new ConfigStore();
+        again.Load();
+        Assert.Equal("9.9.9", again.Config.Settings.LastSeenVersion);
+        Assert.Equal(new DateTime(2026, 1, 2), again.Config.Settings.LastUpdateCheck);
+    }
+
+    [Fact]
+    public void NullListsInConfig_DoNotBreakLoading()
+    {
+        Directory.CreateDirectory(ConfigStore.DataDir);
+        var path = ConfigStore.ConfigPath;
+        var backup = File.Exists(path) ? File.ReadAllText(path) : null;
+        try
+        {
+            File.WriteAllText(path, """{ "Settings": null, "Groups": [ { "Name": "x", "Items": null }, null ] }""");
+            var store = new ConfigStore();
+            store.Load();
+            Assert.NotNull(store.Config.Settings);
+            Assert.Single(store.Config.Groups);
+            Assert.Empty(store.Config.Groups[0].Items);
+        }
+        finally
+        {
+            if (backup != null) File.WriteAllText(path, backup);
+            else File.Delete(path);
+        }
+    }
+
+    /// <summary>Убрать группы, которые добавили тесты, из общего тестового config.json.</summary>
+    private static void Cleanup()
+    {
+        var store = new ConfigStore();
+        store.Load();
+        foreach (var g in store.Config.Groups.Where(g => g.Name is "Mine" or "Offline edit" or "Stale").ToList())
+            store.Config.Groups.Remove(g);
+        store.SaveNow();
+    }
+
     [Fact]
     public void PicturePathFromAnotherComputer_IsFoundNextToConfig()
     {
