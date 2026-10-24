@@ -4,9 +4,9 @@ using System.Text;
 
 namespace Futuretray.Core;
 
-public enum CommandKind { Editor, Popup, Background, Exit, Updated, Uninstall }
+public enum CommandKind { Editor, Popup, Background, Exit, Updated, Uninstall, Launch }
 
-public sealed record HostCommand(CommandKind Kind, string? GroupId = null, int X = 0, int Y = 0)
+public sealed record HostCommand(CommandKind Kind, string? GroupId = null, int X = 0, int Y = 0, string? ItemId = null)
 {
     public static HostCommand Parse(string[] args)
     {
@@ -25,6 +25,9 @@ public sealed record HostCommand(CommandKind Kind, string? GroupId = null, int X
                     return new HostCommand(CommandKind.Updated);
                 case "--uninstall":
                     return new HostCommand(CommandKind.Uninstall);
+                case "--launch" when i + 2 < args.Length:
+                    // Пункт списка переходов: запустить элемент группы, не открывая окно группы.
+                    return new HostCommand(CommandKind.Launch, args[i + 1].Trim(), ItemId: args[i + 2].Trim());
                 case "--editor" or "/editor":
                     return new HostCommand(CommandKind.Editor, i + 1 < args.Length ? args[i + 1].Trim() : null);
             }
@@ -32,7 +35,7 @@ public sealed record HostCommand(CommandKind Kind, string? GroupId = null, int X
         return new HostCommand(CommandKind.Editor);
     }
 
-    public string Serialize() => $"{Kind}\t{GroupId}\t{X}\t{Y}";
+    public string Serialize() => $"{Kind}\t{GroupId}\t{X}\t{Y}\t{ItemId}";
 
     public static HostCommand? Deserialize(string? line)
     {
@@ -41,7 +44,8 @@ public sealed record HostCommand(CommandKind Kind, string? GroupId = null, int X
         if (parts.Length < 4 || !Enum.TryParse<CommandKind>(parts[0], out var kind)) return null;
         int.TryParse(parts[2], out var x);
         int.TryParse(parts[3], out var y);
-        return new HostCommand(kind, string.IsNullOrEmpty(parts[1]) ? null : parts[1], x, y);
+        var itemId = parts.Length > 4 && parts[4].Length > 0 ? parts[4] : null;
+        return new HostCommand(kind, string.IsNullOrEmpty(parts[1]) ? null : parts[1], x, y, itemId);
     }
 }
 

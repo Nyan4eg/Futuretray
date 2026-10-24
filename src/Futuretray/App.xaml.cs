@@ -132,6 +132,9 @@ public partial class App : Application
                     break;
                 case CommandKind.Background:
                     break;
+                case CommandKind.Launch:
+                    LaunchFromJumpList(command.GroupId, command.ItemId);
+                    break;
                 case CommandKind.Updated:
                     ShowEditor(null, Loc.F("Готово! Futuretray обновлён до версии {0}", Updater.CurrentVersionText));
                     break;
@@ -189,6 +192,19 @@ public partial class App : Application
         WindowEffects.ForceForeground(_editor);
         if (groupId != null) _editor.SelectGroup(groupId);
         if (message != null) _editor.ShowToast(message);
+    }
+
+    /// <summary>Пункт списка переходов закреплённой группы: открыть программу (или переключиться на неё).</summary>
+    private void LaunchFromJumpList(string? groupId, string? itemId)
+    {
+        var group = Store.Find(groupId);
+        var item = group?.Items.FirstOrDefault(i => i.Id == itemId);
+        if (group == null || item == null)
+        {
+            ShowEditor(group?.Id, Loc.T("Этого приложения больше нет в группе — список переходов обновится сам."));
+            return;
+        }
+        if (Launcher.Open(item) is { } error) ShowEditor(group.Id, error);
     }
 
     public void ShowSearch()

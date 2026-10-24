@@ -29,6 +29,25 @@ internal static class ShellLink
         }
     }
 
+    /// <summary>Пункт списка переходов: ссылка в памяти (не файл) с заголовком и значком.</summary>
+    public static object CreateTask(string target, string arguments, string title, string iconPath, string? description)
+    {
+        var link = (IShellLinkW)new CShellLink();
+        link.SetPath(target);
+        link.SetArguments(arguments);
+        link.SetIconLocation(iconPath, 0);
+        if (!string.IsNullOrEmpty(description)) link.SetDescription(description);
+        PropertyStore.SetString((IPropertyStore)link, ref PropertyStore.Title, title);
+        return link;
+    }
+
+    public static object CreateSeparator()
+    {
+        var link = (IShellLinkW)new CShellLink();
+        PropertyStore.SetBool((IPropertyStore)link, ref PropertyStore.IsDestListSeparator, true);
+        return link;
+    }
+
     public static LinkInfo? Read(string path)
     {
         var link = (IShellLinkW)new CShellLink();

@@ -6,6 +6,16 @@ namespace Futuretray.Core;
 internal static class PropertyStore
 {
     public static PropertyKey AppUserModelId = new(new Guid("9F4C2855-9F79-4B39-A8D0-E1D42DE1D5F3"), 5);
+    public static PropertyKey IsDestListSeparator = new(new Guid("9F4C2855-9F79-4B39-A8D0-E1D42DE1D5F3"), 6);
+    public static PropertyKey Title = new(new Guid("F29F85E0-4FF9-1068-AB91-08002B27B3D9"), 2);
+
+    public static void SetBool(IPropertyStore store, ref PropertyKey key, bool value)
+    {
+        // VT_BOOL: VARIANT_BOOL (-1 / 0) в младших двух байтах значения.
+        var pv = new PropVariant { vt = 11, pointer = new IntPtr(value ? 0xFFFF : 0) };
+        store.SetValue(ref key, ref pv);
+        store.Commit();
+    }
 
     public static void SetString(IPropertyStore store, ref PropertyKey key, string value)
     {

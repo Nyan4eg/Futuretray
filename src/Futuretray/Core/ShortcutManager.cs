@@ -57,6 +57,7 @@ public sealed class ShortcutManager
                     TryDelete(file);
 
             Write(path, g, icon);
+            JumpLists.Update(g, AppUserModelId(g));
 
             // Копии в «Пуске» и на рабочем столе — переписываем целиком (с переименованием).
             foreach (var dir in new[] { StartMenuDir, DesktopDir })
@@ -97,6 +98,7 @@ public sealed class ShortcutManager
 
     public void Remove(Group g)
     {
+        JumpLists.Delete(AppUserModelId(g));
         foreach (var dir in new[] { ShortcutsDir, StartMenuDir, DesktopDir })
             foreach (var file in SafeEnumerate(dir).Where(f => BelongsTo(f, g.Id)).ToList())
                 TryDelete(file);
@@ -137,6 +139,7 @@ public sealed class ShortcutManager
             if (id == null || !ids.Contains(id)) TryDelete(file);
         }
         foreach (var g in groups) Update(g);
+        JumpLists.CleanupIcons(groups);
     }
 
     /// <summary>Ярлык самого Futuretray в меню «Пуск», чтобы программу было легко найти.</summary>

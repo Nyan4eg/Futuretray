@@ -54,9 +54,29 @@ public static class GroupIconRenderer
         return image;
     }
 
-    public static void WriteIco(Group g, string path)
+    public static void WriteIco(Group g, string path) =>
+        WriteIcoFrames(path, IcoSizes.Select(size => Render(g, size)));
+
+    /// <summary>.ico со значком элемента группы — для пунктов списка переходов.</summary>
+    public static void WriteItemIco(LaunchItem item, string path)
     {
-        var frames = IcoSizes.Select(size => (size, data: EncodePng(Render(g, size)))).ToList();
+        var source = IconService.Current?.Get(item, IconService.TilePx);
+        if (source == null) return;
+        WriteIcoFrames(path, new[] { 16, 20, 24, 32, 48 }.Select(size =>
+        {
+            var visual = new DrawingVisual();
+            RenderOptions.SetBitmapScalingMode(visual, BitmapScalingMode.HighQuality);
+            using (var dc = visual.RenderOpen()) dc.DrawImage(source, new Rect(0, 0, size, size));
+            var rtb = new RenderTargetBitmap(size, size, 96, 96, PixelFormats.Pbgra32);
+            rtb.Render(visual);
+            rtb.Freeze();
+            return (BitmapSource)rtb;
+        }));
+    }
+
+    public static void WriteIcoFrames(string path, IEnumerable<BitmapSource> images)
+    {
+        var frames = images.Select(image => (size: image.PixelWidth, data: EncodePng(image))).ToList();
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
         using var stream = File.Create(path);
         using var w = new BinaryWriter(stream);

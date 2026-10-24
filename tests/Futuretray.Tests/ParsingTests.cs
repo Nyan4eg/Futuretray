@@ -14,6 +14,20 @@ public class HostCommandTests
         Assert.Equal("abc123", c.GroupId);
     }
 
+    [Fact]
+    public void JumpListItem_LaunchesOneItem()
+    {
+        var c = HostCommand.Parse(new[] { "--launch", "g1", "item7" });
+        Assert.Equal(CommandKind.Launch, c.Kind);
+        Assert.Equal("g1", c.GroupId);
+        Assert.Equal("item7", c.ItemId);
+        Assert.Equal(c, HostCommand.Deserialize(c.Serialize()));
+    }
+
+    [Fact]
+    public void OldFourFieldPipeMessage_StillUnderstood() =>
+        Assert.Equal(new HostCommand(CommandKind.Popup, "g", 1, 2), HostCommand.Deserialize("Popup\tg\t1\t2"));
+
     [Theory]
     [InlineData(new string[0], CommandKind.Editor)]
     [InlineData(new[] { "--background" }, CommandKind.Background)]

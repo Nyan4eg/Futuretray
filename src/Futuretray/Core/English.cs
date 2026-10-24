@@ -210,6 +210,8 @@ internal static class English
         ["Эта группа больше не существует. Открепите её значок с панели задач."] = "This group no longer exists. Unpin its icon from the taskbar.",
         ["Futuretray — группы на панели задач"] = "Futuretray — taskbar groups",
         ["Открыть Futuretray"] = "Open Futuretray",
+        ["Этого приложения больше нет в группе — список переходов обновится сам."] =
+            "This app is no longer in the group — the jump list will update by itself.",
         ["Поиск по группам"] = "Search groups",
         ["Обновить до версии {0}"] = "Update to version {0}",
         ["Выйти"] = "Quit",
