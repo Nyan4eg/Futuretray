@@ -65,6 +65,19 @@ internal static class English
         ["Включён автозапуск Futuretray — без него группа не откроется при входе"] =
             "Futuretray now starts with Windows — without that the group can't open at sign-in",
         ["Пауза перед запуском"] = "Delay before start",
+        ["Свернуть остальное"] = "Minimize everything else",
+        ["Закрыть все программы группы"] = "Close all of the group's apps",
+        ["Другие окна при открытии"] = "Other windows on open",
+        ["Что делать с остальным при «Открыть все»: например, «Работа» сворачивает всё лишнее или закрывает «Отдых»."] =
+            "What happens to everything else on “Open all”: for example, “Work” minimizes the rest or closes “Leisure”.",
+        ["Не трогать"] = "Leave",
+        ["Свернуть"] = "Minimize",
+        ["Закрыть группы"] = "Close groups",
+        ["Других групп пока нет"] = "There are no other groups yet",
+        ["Какие группы закрывать (программы, которые есть и в этой группе, останутся открытыми):"] =
+            "Which groups to close (apps that are also in this group stay open):",
+        ["В окне группы: Ctrl+Enter — открыть все, Ctrl+M — свернуть остальное, Ctrl+Shift+W — закрыть все программы группы."] =
+            "In the group popup: Ctrl+Enter opens all, Ctrl+M minimizes everything else, Ctrl+Shift+W closes all of the group's apps.",
         ["При «Открыть все»: сколько подождать после предыдущей программы группы — например, пока подключится VPN"] =
             "For “Open all”: how long to wait after the previous app in the group — for example, until the VPN connects",
         ["{0} с"] = "{0} s",

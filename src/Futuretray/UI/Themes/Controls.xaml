@@ -373,6 +373,41 @@
         </Setter>
     </Style>
 
+    <!-- «Фишка» с отметкой: выбор нескольких вариантов (например, групп) -->
+    <Style x:Key="Chip" TargetType="CheckBox">
+        <Setter Property="OverridesDefaultStyle" Value="True"/>
+        <Setter Property="FocusVisualStyle" Value="{StaticResource FocusVisual}"/>
+        <Setter Property="Foreground" Value="{DynamicResource Brush.TextSecondary}"/>
+        <Setter Property="Padding" Value="12,5"/>
+        <Setter Property="Margin" Value="0,0,6,6"/>
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="CheckBox">
+                    <Border x:Name="Bd" CornerRadius="14" Padding="{TemplateBinding Padding}" Background="{DynamicResource Brush.Segment}"
+                            BorderThickness="1" BorderBrush="{DynamicResource Brush.ControlStroke}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock x:Name="Mark" Text="&#xE73E;" FontFamily="{DynamicResource Font.Icons}" FontSize="11"
+                                       VerticalAlignment="Center" Margin="0,0,6,0" Visibility="Collapsed"/>
+                            <ContentPresenter VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource Brush.SubtleHover}"/>
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource Brush.SegmentSelected}"/>
+                            <Setter TargetName="Mark" Property="Visibility" Value="Visible"/>
+                            <Setter Property="Foreground" Value="{DynamicResource Brush.Text}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <!-- Цветовой «кружок» -->
     <Style x:Key="Swatch" TargetType="RadioButton">
         <Setter Property="OverridesDefaultStyle" Value="True"/>

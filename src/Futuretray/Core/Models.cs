@@ -37,6 +37,9 @@ public enum UiLanguage { Auto, Russian, English }
 public enum DockEdge { Left, Top, Right, Bottom, Free }
 public enum DockAlign { Start, Center, End }
 
+/// <summary>Что делать с остальными окнами, когда группа открывается целиком («Открыть все»).</summary>
+public enum OthersOnOpen { Keep, Minimize, CloseGroups }
+
 /// <summary>
 /// Запомненное место окна программы: монитор и прямоугольник в долях его рабочей области
 /// (0..1) — так расположение переживает смену разрешения и масштаба.
@@ -177,6 +180,8 @@ public sealed class Group : Observable
     private string? _sourceFolder;
     private bool _dockPlaced;
     private bool _openAtLogin;
+    private OthersOnOpen _othersOnOpen;
+    private List<string>? _closeGroupIds;
 
     public Group()
     {
@@ -255,6 +260,12 @@ public sealed class Group : Observable
     /// <summary>Открывать группу («Открыть все» с раскладкой окон) при входе в Windows.</summary>
     public bool OpenAtLogin { get => _openAtLogin; set => Set(ref _openAtLogin, value); }
 
+    /// <summary>Переключение пространств: при «Открыть все» свернуть остальное или закрыть другие группы.</summary>
+    public OthersOnOpen OthersOnOpen { get => _othersOnOpen; set => Set(ref _othersOnOpen, value); }
+
+    /// <summary>Группы, чьи программы закрываются при «Открыть все» (для <see cref="OthersOnOpen.CloseGroups"/>). Меняется заменой списка.</summary>
+    public List<string>? CloseGroupIds { get => _closeGroupIds; set => Set(ref _closeGroupIds, value is { Count: > 0 } ? value : null); }
+
     /// <summary>
     /// Первое включение трея: ставим его к той же стороне экрана, где панель задач
     /// (снизу — рядом снизу, слева — столбцом слева), а не всегда слева.
@@ -332,6 +343,8 @@ public sealed class Group : Observable
             Backdrop = Backdrop,
             TintOpacity = TintOpacity,
             CloseAfterLaunch = CloseAfterLaunch,
+            OthersOnOpen = OthersOnOpen,
+            CloseGroupIds = CloseGroupIds?.ToList(),
             DockEdge = DockEdge,
             DockAlign = DockAlign,
             DockMonitor = DockMonitor,

@@ -211,7 +211,11 @@ public partial class PopupWindow : Window
         if (e.Handled) return;
         e.Handled = true;
         var menu = NewMenu(Root);
-        menu.Items.Add(App.MenuItem("", Group.HasLayout ? Loc.T("Открыть все и разложить окна") : Loc.T("Открыть все"), OpenAll));
+        var openAll = App.MenuItem("", Group.HasLayout ? Loc.T("Открыть все и разложить окна") : Loc.T("Открыть все"), OpenAll);
+        openAll.InputGestureText = "Ctrl+Enter";
+        menu.Items.Add(openAll);
+        App.AddFinishItems(menu, Group, HidePopup);
+        menu.Items.Add(new Separator());
         menu.Items.Add(App.MenuItem("", Loc.T("Изменить группу…"), () =>
         {
             HidePopup();
@@ -241,6 +245,20 @@ public partial class PopupWindow : Window
                 break;
             case Key.Back when _filter.Length > 0:
                 SetFilter(_filter[..^1]);
+                e.Handled = true;
+                break;
+            case Key.Enter when ctrl && !shift && _filter.Length == 0:
+                OpenAll();
+                e.Handled = true;
+                break;
+            case Key.M when ctrl:
+                HidePopup();
+                Workspaces.MinimizeOthers(Group);
+                e.Handled = true;
+                break;
+            case Key.W when ctrl && shift:
+                HidePopup();
+                Workspaces.CloseAll(Group);
                 e.Handled = true;
                 break;
             case Key.Enter when _filter.Length > 0:

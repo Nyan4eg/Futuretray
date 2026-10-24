@@ -71,7 +71,16 @@ internal static class DebugSnapshot
         steps.Add(("editor", () => { app.ShowEditor(); editor = Current<MainWindow>(); editor!.Left = -4000; }));
         steps.Add(("editor-item", () => editor!.SnapshotSelectFirstItem()));
         steps.Add(("editor-scrolled", () => editor!.SnapshotScroll(900)));
-        steps.Add(("editor-dock", () => { app.Store.Config.Groups[0].DockEnabled = true; editor!.SnapshotScroll(1500); }));
+        steps.Add(("editor-switch", () =>
+        {
+            app.Store.Config.Groups[0].OthersOnOpen = OthersOnOpen.CloseGroups;
+            app.Store.Config.Groups[0].CloseGroupIds = [app.Store.Config.Groups[2].Id];
+            editor!.SnapshotSelectGroup(0);
+            editor!.SnapshotScroll(1000);
+        }));
+        steps.Add(("editor-dock", () => {
+            app.Store.Config.Groups[0].OthersOnOpen = OthersOnOpen.Keep;
+            app.Store.Config.Groups[0].CloseGroupIds = null; app.Store.Config.Groups[0].DockEnabled = true; editor!.SnapshotScroll(1500); }));
         steps.Add(("pin", () => editor!.SnapshotShowPin()));
         steps.Add(("settings", () => editor!.SnapshotShowSettings()));
         steps.Add(("empty-group", () => editor!.SnapshotSelectGroup(1)));
@@ -150,7 +159,7 @@ internal static class DebugSnapshot
         {
             for (int t = 0; t < 100 && running.WindowsFor(group.Items[0]).Count < count; t++) { await Task.Delay(200); running.Refresh(); }
         }
-        void CloseAll() { foreach (var p in System.Diagnostics.Process.GetProcessesByName("ftform")) p.Kill(); }
+        void CloseAll() { foreach (var p in System.Diagnostics.Process.GetProcessesByName("ftform").Concat(System.Diagnostics.Process.GetProcessesByName("ftother"))) p.Kill(); }
         string Rects() => string.Join("; ", running.WindowsFor(group.Items[0]).Select(w => { var r = Native.VisibleBounds(w); return $"{r.Left},{r.Top},{r.Width}x{r.Height}"; }).Order());
 
         CloseAll();
@@ -237,6 +246,56 @@ internal static class DebugSnapshot
         group.Items[0].Layouts = new(group.Items[0].Layouts!) { ["1280x720@0,0*"] = new WindowLayout() };
         Workspaces.Forget(group, profile);
         sb.AppendLine($"forget-ok: {group.Items[0].Layouts?.Keys.SequenceEqual(["1280x720@0,0*"]) == true && group.Items[1].Layouts == null}");
+
+        // 7. Закончить работу и переключение. Вторая программа — своя копия exe, чтобы окна различались.
+        var other = Path.Combine(dir, "ftother.exe");
+        File.Copy(ps, other, true);
+        var rest = new Group { Name = "rest" };
+        rest.Items.Add(new LaunchItem { Kind = ItemKind.Path, Target = other, Name = "FormC", Arguments = group.Items[0].Arguments!.Replace("FormA", "FormC") });
+        rest.Items.Add(group.Items[0].Clone()); // программа, которая есть в обеих группах
+        bool Alive(string name) => System.Diagnostics.Process.GetProcessesByName(name).Length > 0;
+        async Task WaitFor(Func<bool> condition) { for (int t = 0; t < 50 && !condition(); t++) { await Task.Delay(200); running.Refresh(); } }
+
+        // Трогаем только тестовые окна — окна на рабочем столе разработчика сворачивать нельзя.
+        var testPids = new HashSet<uint>();
+        Workspaces.TestScope = w =>
+        {
+            Native.GetWindowThreadProcessId(w, out var pid);
+            if (testPids.Contains(pid)) return true;
+            try { var name = System.Diagnostics.Process.GetProcessById((int)pid).ProcessName; if (name is "ftform" or "ftother") { testPids.Add(pid); return true; } }
+            catch { }
+            return false;
+        };
+
+        Launcher.Launch(rest.Items[0]);
+        await WaitFor(() => running.IsRunning(rest.Items[0]));
+        var formC = running.WindowsFor(rest.Items[0]).FirstOrDefault();
+        Native.ShowWindow(running.WindowsFor(group.Items[0]).First(), Native.SW_MINIMIZE);
+        await Task.Delay(400);
+        int minimized = Workspaces.MinimizeOthers(group, activate: false);
+        await Task.Delay(800);
+        running.Refresh();
+        sb.AppendLine($"focus: minimized {minimized}, C iconic={Native.IsIconic(formC)}, group iconic={running.WindowsFor(group.Items[0]).Count(Native.IsIconic)}");
+        sb.AppendLine($"focus-ok: {minimized == 1 && Native.IsIconic(formC) && running.WindowsFor(group.Items[0]).All(w => !Native.IsIconic(w))}");
+
+        int asked = Workspaces.CloseAll(rest, keep: group);
+        await WaitFor(() => !Alive("ftother"));
+        sb.AppendLine($"close-keep-ok: {asked == 1 && !Alive("ftother") && running.WindowsFor(group.Items[0]).Count == 2}");
+
+        Launcher.Launch(rest.Items[0]);
+        await WaitFor(() => running.IsRunning(rest.Items[0]));
+        group.OthersOnOpen = OthersOnOpen.CloseGroups;
+        group.CloseGroupIds = [rest.Id];
+        var t3 = new TaskCompletionSource<Workspaces.ArrangeResult>();
+        Workspaces.OpenAll(group, r => t3.TrySetResult(r), [group, rest]);
+        await t3.Task;
+        await WaitFor(() => !Alive("ftother"));
+        sb.AppendLine($"switch-close-ok: {!Alive("ftother") && running.WindowsFor(group.Items[0]).Count == 2}");
+
+        Workspaces.CloseAll(group);
+        await WaitFor(() => !Alive("ftform"));
+        sb.AppendLine($"close-all-ok: {!Alive("ftform")}");
+        Workspaces.TestScope = null;
 
         CloseAll();
         File.WriteAllText(Path.Combine(dir, "workspace.txt"), sb.ToString());

@@ -593,6 +593,7 @@ public partial class DockWindow : Window
         var menu = NewMenu(Root);
         menu.Items.Add(App.MenuItem("", Group.HasLayout ? Loc.T("Открыть все и разложить окна") : Loc.T("Открыть все"),
             () => App.Host.OpenAll(Group)));
+        App.AddFinishItems(menu, Group);
         menu.Items.Add(new Separator());
         AddDockItems(menu);
         menu.IsOpen = true;

@@ -196,7 +196,12 @@ public static class Native
     [DllImport("user32.dll")] public static extern IntPtr MonitorFromWindow(IntPtr hWnd, uint flags);
     [DllImport("dwmapi.dll")] public static extern int DwmGetWindowAttribute(IntPtr hWnd, int attribute, out RECT value, int size);
     public const int DWMWA_EXTENDED_FRAME_BOUNDS = 9;
-    public const int SW_MAXIMIZE = 3;
+    public const int SW_MAXIMIZE = 3, SW_SHOWNOACTIVATE = 4, SW_SHOWMINNOACTIVE = 7;
+    [DllImport("user32.dll")] public static extern bool ShowWindowAsync(IntPtr hWnd, int cmd);
+
+    /// <summary>Окно скрыто DWM — например, стоит на другом виртуальном рабочем столе.</summary>
+    public static bool IsCloaked(IntPtr hwnd) =>
+        DwmGetWindowAttribute(hwnd, DWMWA_CLOAKED, out int cloaked, sizeof(int)) == 0 && cloaked != 0;
 
     /// <summary>Видимые границы окна — без невидимых рамок, которые Windows 10/11 добавляет для изменения размера.</summary>
     public static RECT VisibleBounds(IntPtr hWnd)

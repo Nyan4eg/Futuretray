@@ -323,6 +323,35 @@
                                     </StackPanel>
                                     <CheckBox Grid.Column="1" Style="{StaticResource Toggle}" IsChecked="{Binding OpenAtLogin}" Click="OpenAtLogin_Click"/>
                                 </Grid>
+                                <Border Style="{StaticResource RowDivider}" Margin="0,14,0,0"/>
+                                <Grid Margin="0,14,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel VerticalAlignment="Center" Margin="0,0,16,0">
+                                        <TextBlock Text="{ui:T 'Другие окна при открытии'}"/>
+                                        <TextBlock Style="{StaticResource Text.Caption}" TextWrapping="Wrap"
+                                                   Text="{ui:T 'Что делать с остальным при «Открыть все»: например, «Работа» сворачивает всё лишнее или закрывает «Отдых».'}"/>
+                                    </StackPanel>
+                                    <Border Grid.Column="1" Style="{StaticResource Segments}" VerticalAlignment="Center">
+                                        <StackPanel Orientation="Horizontal">
+                                            <RadioButton Style="{StaticResource Segment}" Content="{ui:T 'Не трогать'}"
+                                                         IsChecked="{Binding OthersOnOpen, Converter={StaticResource EnumBool}, ConverterParameter=Keep}"/>
+                                            <RadioButton Style="{StaticResource Segment}" Content="{ui:T 'Свернуть'}"
+                                                         IsChecked="{Binding OthersOnOpen, Converter={StaticResource EnumBool}, ConverterParameter=Minimize}"/>
+                                            <RadioButton Style="{StaticResource Segment}" Content="{ui:T 'Закрыть группы'}"
+                                                         IsChecked="{Binding OthersOnOpen, Converter={StaticResource EnumBool}, ConverterParameter=CloseGroups}"/>
+                                        </StackPanel>
+                                    </Border>
+                                </Grid>
+                                <StackPanel Margin="0,12,0,0"
+                                            Visibility="{Binding OthersOnOpen, Converter={StaticResource EnumVisible}, ConverterParameter=CloseGroups}">
+                                    <TextBlock x:Name="CloseGroupsHint" Style="{StaticResource Text.Caption}" TextWrapping="Wrap" Margin="0,0,0,8"/>
+                                    <WrapPanel x:Name="CloseGroupsPanel"/>
+                                </StackPanel>
+                                <TextBlock Style="{StaticResource Text.Caption}" Margin="0,14,0,0" TextWrapping="Wrap"
+                                           Text="{ui:T 'В окне группы: Ctrl+Enter — открыть все, Ctrl+M — свернуть остальное, Ctrl+Shift+W — закрыть все программы группы.'}"/>
                             </StackPanel>
                         </Border>
 

@@ -158,6 +158,33 @@ public class WorkspaceTests
         Assert.False(g.HasLayout);
     }
 
+    [Theory]
+    [InlineData("--close", CommandKind.CloseAll)]
+    [InlineData("--focus", CommandKind.Focus)]
+    public void FinishArguments_AreParsedAndSurvivePipe(string arg, CommandKind kind)
+    {
+        var c = HostCommand.Parse(new[] { arg, "g1" });
+        Assert.Equal(kind, c.Kind);
+        Assert.Equal("g1", c.GroupId);
+        Assert.Equal(c, HostCommand.Deserialize(c.Serialize()));
+    }
+
+    [Fact]
+    public void SwitchSettings_SurviveSaveAndDuplicate()
+    {
+        var g = new Group { OthersOnOpen = OthersOnOpen.CloseGroups, CloseGroupIds = ["rest"] };
+        var back = JsonSerializer.Deserialize<Group>(JsonSerializer.Serialize(g, ConfigStore.JsonOptions), ConfigStore.JsonOptions)!;
+        Assert.Equal(OthersOnOpen.CloseGroups, back.OthersOnOpen);
+        Assert.Equal(["rest"], back.CloseGroupIds!);
+
+        var copy = g.Duplicate("copy");
+        Assert.NotSame(g.CloseGroupIds, copy.CloseGroupIds);
+        Assert.Equal(OthersOnOpen.CloseGroups, copy.OthersOnOpen);
+
+        g.CloseGroupIds = [];
+        Assert.Null(g.CloseGroupIds);
+    }
+
     [Fact]
     public void StartupArgument_IsItsOwnCommand() =>
         Assert.Equal(CommandKind.Startup, HostCommand.Parse(new[] { "--startup" }).Kind);

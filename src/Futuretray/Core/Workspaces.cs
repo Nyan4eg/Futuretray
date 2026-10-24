@@ -197,9 +197,23 @@ public static class Workspaces
     /// «Открыть все»: запускает недостающие программы по порядку списка, выдерживая паузы,
     /// и, если расположение запомнено, ставит окна на места. Итог приходит в <paramref name="done"/>.
     /// </summary>
-    public static void OpenAll(Group group, Action<ArrangeResult>? done = null)
+    /// <param name="others">Остальные группы — по ним работает «закрыть другие группы» (<see cref="Group.OthersOnOpen"/>).</param>
+    public static void OpenAll(Group group, Action<ArrangeResult>? done = null, IEnumerable<Group>? others = null)
     {
         if (Sessions.Remove(group.Id, out var previous)) previous.Stop();
+
+        // Переключение пространств — до запуска, чтобы новые окна не попали под раздачу.
+        switch (group.OthersOnOpen)
+        {
+            case OthersOnOpen.Minimize:
+                MinimizeOthers(group, activate: false);
+                break;
+            case OthersOnOpen.CloseGroups when group.CloseGroupIds != null && others != null:
+                foreach (var other in others.Where(g => g != group && group.CloseGroupIds.Contains(g.Id)))
+                    CloseAll(other, keep: group);
+                break;
+        }
+
         OpenAllSession? session = null;
         session = new OpenAllSession(group, done, () =>
         {
@@ -207,6 +221,63 @@ public static class Workspaces
         });
         Sessions[group.Id] = session;
         session.Start();
+    }
+
+    // ================= Закончить работу и режим фокуса =================
+
+    /// <summary>Только для живой проверки: какие окна вообще можно трогать (чтобы не свернуть окна разработчика).</summary>
+    internal static Func<IntPtr, bool>? TestScope { get; set; }
+
+    private static HashSet<IntPtr> WindowsOf(RunningApps running, Group group) =>
+        group.Items.SelectMany(running.WindowsFor).ToHashSet();
+
+    /// <summary>Есть ли у группы открытые окна — показывать ли «Закрыть все».</summary>
+    public static bool HasOpenWindows(Group group) =>
+        RunningApps.Current is { } running && group.Items.Any(running.IsRunning);
+
+    /// <summary>
+    /// «Закрыть все»: как крестик у каждого окна программ группы — несохранённое программы спросят сами.
+    /// Окна программ, которые есть и в группе <paramref name="keep"/>, остаются.
+    /// </summary>
+    /// <returns>Сколько окон попросили закрыться.</returns>
+    public static int CloseAll(Group group, Group? keep = null)
+    {
+        if (RunningApps.Current is not { } running) return 0;
+        running.Refresh();
+        var spare = keep == null ? [] : WindowsOf(running, keep);
+        var windows = WindowsOf(running, group).Where(w => !spare.Contains(w)).ToList();
+        foreach (var window in windows) Native.PostMessage(window, Native.WM_CLOSE, IntPtr.Zero, IntPtr.Zero);
+        return windows.Count;
+    }
+
+    /// <summary>
+    /// «Свернуть остальное»: на экране остаются только окна группы (свёрнутые из них возвращаются).
+    /// Окна на других виртуальных рабочих столах не трогаем.
+    /// </summary>
+    /// <returns>Сколько окон свернули.</returns>
+    public static int MinimizeOthers(Group group, bool activate = true)
+    {
+        if (RunningApps.Current is not { } running) return 0;
+        running.Refresh();
+        var own = WindowsOf(running, group);
+        int minimized = 0;
+        IntPtr top = IntPtr.Zero;
+        foreach (var window in running.Windows.Select(w => w.Handle))
+        {
+            if (TestScope != null && !TestScope(window)) continue;
+            if (own.Contains(window))
+            {
+                if (Native.IsIconic(window)) Native.ShowWindowAsync(window, Native.SW_SHOWNOACTIVATE);
+                if (top == IntPtr.Zero && !Native.IsCloaked(window)) top = window;
+                continue;
+            }
+            if (Native.IsIconic(window) || Native.IsCloaked(window)) continue;
+            // Асинхронно: зависшая программа не задержит остальных.
+            Native.ShowWindowAsync(window, Native.SW_SHOWMINNOACTIVE);
+            minimized++;
+        }
+        if (activate && top != IntPtr.Zero) RunningApps.Activate(top);
+        return minimized;
     }
 
     /// <returns>false — Windows не дала подвинуть окно (обычно программа запущена от администратора).</returns>

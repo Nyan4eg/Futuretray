@@ -200,6 +200,36 @@ public partial class MainWindow : Window
         BuildMonitorChoices();
         UpdateHotkeyErrors();
         UpdateLayoutStatus();
+        BuildCloseGroupChoices();
+    }
+
+    /// <summary>Фишки «какие группы закрывать» — все группы, кроме текущей.</summary>
+    private void BuildCloseGroupChoices()
+    {
+        CloseGroupsPanel.Children.Clear();
+        if (_group == null) return;
+        var group = _group;
+        var others = Groups.Where(g => g != group).ToList();
+        CloseGroupsHint.Text = others.Count == 0
+            ? Loc.T("Других групп пока нет")
+            : Loc.T("Какие группы закрывать (программы, которые есть и в этой группе, останутся открытыми):");
+        foreach (var other in others)
+        {
+            var chip = new CheckBox
+            {
+                Style = (Style)FindResource("Chip"),
+                Content = other.Name,
+                IsChecked = group.CloseGroupIds?.Contains(other.Id) == true,
+            };
+            chip.Click += (_, _) =>
+            {
+                var ids = group.CloseGroupIds?.ToList() ?? new List<string>();
+                ids.Remove(other.Id);
+                if (chip.IsChecked == true) ids.Add(other.Id);
+                group.CloseGroupIds = ids;
+            };
+            CloseGroupsPanel.Children.Add(chip);
+        }
     }
 
     private void BuildMonitorChoices()
@@ -244,6 +274,9 @@ public partial class MainWindow : Window
             case nameof(Group.DockMonitor):
                 Dispatcher.BeginInvoke(BuildMonitorChoices);
                 break;
+            case nameof(Group.CloseGroupIds):
+                Dispatcher.BeginInvoke(BuildCloseGroupChoices);
+                break;
             case nameof(Group.DockEnabled) when _group is { DockEnabled: true, DockPlaced: false } g:
                 var primary = Monitors.Find(g.DockMonitor);
                 var center = new Native.POINT((primary.Bounds.Left + primary.Bounds.Right) / 2, (primary.Bounds.Top + primary.Bounds.Bottom) / 2);
@@ -265,6 +298,7 @@ public partial class MainWindow : Window
     private void OnGroupsChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
         if (Groups.Count == 0 && SettingsScroll.Visibility != Visibility.Visible) ShowView(View.Empty);
+        BuildCloseGroupChoices();
     }
 
     private void NewGroup_Click(object sender, RoutedEventArgs e)
@@ -407,7 +441,7 @@ public partial class MainWindow : Window
     {
         if (_group == null) return;
         ShowToast(Loc.T("Раскладываю окна… недостающие программы запускаются"));
-        Workspaces.OpenAll(_group, result => ShowToast(Workspaces.Describe(result)));
+        App.Host.OpenAll(_group);
     }
 
     /// <summary>«Забыть» убирает расположение для текущих мониторов, а если для них ничего нет — все остальные.</summary>

@@ -142,6 +142,12 @@ public partial class App : Application
                 case CommandKind.Arrange when Store.Find(command.GroupId) is { } arrangeGroup:
                     OpenAll(arrangeGroup);
                     break;
+                case CommandKind.CloseAll when Store.Find(command.GroupId) is { } closeGroup:
+                    Workspaces.CloseAll(closeGroup);
+                    break;
+                case CommandKind.Focus when Store.Find(command.GroupId) is { } focusGroup:
+                    Workspaces.MinimizeOthers(focusGroup);
+                    break;
                 case CommandKind.Updated:
                     ShowEditor(null, Loc.F("Готово! Futuretray обновлён до версии {0}", Updater.CurrentVersionText));
                     break;
@@ -210,7 +216,19 @@ public partial class App : Application
         Workspaces.OpenAll(group, result =>
         {
             if (_editor?.IsVisible == true) _editor.ShowToast(Workspaces.Describe(result));
-        });
+        }, Store.Config.Groups);
+    }
+
+    /// <summary>Пункты «Свернуть остальное» и «Закрыть все» для меню окна группы и трея.</summary>
+    public static void AddFinishItems(ContextMenu menu, Group group, Action? before = null)
+    {
+        var focus = MenuItem("", Loc.T("Свернуть остальное"), () => { before?.Invoke(); Workspaces.MinimizeOthers(group); });
+        focus.InputGestureText = "Ctrl+M";
+        menu.Items.Add(focus);
+        if (!Workspaces.HasOpenWindows(group)) return;
+        var close = MenuItem("", Loc.T("Закрыть все программы группы"), () => { before?.Invoke(); Workspaces.CloseAll(group); });
+        close.InputGestureText = "Ctrl+Shift+W";
+        menu.Items.Add(close);
     }
 
     private bool _loginGroupsOpened;

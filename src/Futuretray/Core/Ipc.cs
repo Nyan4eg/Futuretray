@@ -4,7 +4,7 @@ using System.Text;
 
 namespace Futuretray.Core;
 
-public enum CommandKind { Editor, Popup, Background, Exit, Updated, Uninstall, Launch, Arrange, Startup }
+public enum CommandKind { Editor, Popup, Background, Exit, Updated, Uninstall, Launch, Arrange, Startup, CloseAll, Focus }
 
 public sealed record HostCommand(CommandKind Kind, string? GroupId = null, int X = 0, int Y = 0, string? ItemId = null)
 {
@@ -33,6 +33,10 @@ public sealed record HostCommand(CommandKind Kind, string? GroupId = null, int X
                     return new HostCommand(CommandKind.Launch, args[i + 1].Trim(), ItemId: args[i + 2].Trim());
                 case "--arrange" when i + 1 < args.Length:
                     return new HostCommand(CommandKind.Arrange, args[i + 1].Trim());
+                case "--close" when i + 1 < args.Length:
+                    return new HostCommand(CommandKind.CloseAll, args[i + 1].Trim());
+                case "--focus" when i + 1 < args.Length:
+                    return new HostCommand(CommandKind.Focus, args[i + 1].Trim());
                 case "--editor" or "/editor":
                     return new HostCommand(CommandKind.Editor, i + 1 < args.Length ? args[i + 1].Trim() : null);
             }
