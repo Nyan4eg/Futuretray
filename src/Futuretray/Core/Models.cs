@@ -283,6 +283,8 @@ public sealed class AppSettings : Observable
     private bool _downloadFavicons = true;
 
     /// <summary>Сочетание для поиска по всем группам; null — выключено.</summary>
+    /// <remarks>Пишем и null, иначе «выключено» после перезапуска превращалось бы в сочетание по умолчанию.</remarks>
+    [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
     public string? SearchHotkey { get => _searchHotkey; set => Set(ref _searchHotkey, string.IsNullOrWhiteSpace(value) ? null : value); }
 
     /// <summary>Скачивать значки сайтов для ссылок (обращение к самому сайту).</summary>

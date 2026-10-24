@@ -8,7 +8,7 @@ namespace Futuretray.Core;
 /// <summary>Хранит настройки и группы в %AppData%\Futuretray\config.json с автосохранением.</summary>
 public sealed class ConfigStore
 {
-    public static string DataDir { get; } = Environment.GetEnvironmentVariable("FUTURETRAY_DATA") is { Length: > 0 } custom
+    public static string DataDir { get; internal set; } = Environment.GetEnvironmentVariable("FUTURETRAY_DATA") is { Length: > 0 } custom
         ? custom
         : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Futuretray");
 

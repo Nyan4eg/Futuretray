@@ -10,7 +10,7 @@ public sealed record AppWindow(IntPtr Handle, uint ProcessId, string? Path, stri
 /// </summary>
 public sealed class RunningApps
 {
-    private sealed record MatchSpec(string? ExePath, string? ExeName, string? ExeDir, string? StubName, string? AppId);
+    internal sealed record MatchSpec(string? ExePath, string? ExeName, string? ExeDir, string? StubName, string? AppId);
 
     private readonly List<Native.WinEventProc> _callbacks = new(); // держим ссылки, иначе GC соберёт делегаты
     private readonly List<IntPtr> _hooks = new();
@@ -183,7 +183,7 @@ public sealed class RunningApps
 
     // ================= Сопоставление окна и элемента группы =================
 
-    private static bool Matches(AppWindow w, MatchSpec s)
+    internal static bool Matches(AppWindow w, MatchSpec s)
     {
         if (s.AppId != null && (string.Equals(w.AppId, s.AppId, StringComparison.OrdinalIgnoreCase) ||
                                 string.Equals(w.ProcessAppId, s.AppId, StringComparison.OrdinalIgnoreCase))) return true;
@@ -207,7 +207,7 @@ public sealed class RunningApps
         return _specs[key] = BuildSpec(item);
     }
 
-    private static MatchSpec? BuildSpec(LaunchItem item)
+    internal static MatchSpec? BuildSpec(LaunchItem item)
     {
         try
         {
