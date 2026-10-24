@@ -4,7 +4,7 @@ using System.Text;
 
 namespace Futuretray.Core;
 
-public enum CommandKind { Editor, Popup, Background, Exit, Updated, Uninstall, Launch, Arrange }
+public enum CommandKind { Editor, Popup, Background, Exit, Updated, Uninstall, Launch, Arrange, Startup }
 
 public sealed record HostCommand(CommandKind Kind, string? GroupId = null, int X = 0, int Y = 0, string? ItemId = null)
 {
@@ -17,6 +17,9 @@ public sealed record HostCommand(CommandKind Kind, string? GroupId = null, int X
             {
                 case "--group" or "-g" or "/group" when i + 1 < args.Length:
                     return new HostCommand(CommandKind.Popup, args[i + 1].Trim());
+                case "--startup":
+                    // Автозапуск при входе в Windows: фоновый режим плюс группы «Открывать при входе».
+                    return new HostCommand(CommandKind.Startup);
                 case "--background" or "/background":
                     return new HostCommand(CommandKind.Background);
                 case "--exit" or "/exit":

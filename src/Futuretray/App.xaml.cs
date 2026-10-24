@@ -50,6 +50,7 @@ public partial class App : Application
         ToolTipService.InitialShowDelayProperty.OverrideMetadata(typeof(FrameworkElement), new FrameworkPropertyMetadata(450));
 
         Store.Load();
+        if (Workspaces.MigrateLegacy(Store.Config.Groups, Workspaces.CurrentProfile)) Store.ScheduleSave();
         Loc.Init(Store.Config.Settings.Language);
 #if DEBUG
         if (Environment.GetEnvironmentVariable("FUTURETRAY_LANG") == "en") Loc.Init(UiLanguage.English);
@@ -132,6 +133,9 @@ public partial class App : Application
                     break;
                 case CommandKind.Background:
                     break;
+                case CommandKind.Startup:
+                    OpenLoginGroups();
+                    break;
                 case CommandKind.Launch:
                     LaunchFromJumpList(command.GroupId, command.ItemId);
                     break;
@@ -198,21 +202,36 @@ public partial class App : Application
     }
 
     /// <summary>
-    /// «Открыть все»: если у группы запомнено рабочее пространство — запустить недостающее и разложить окна,
-    /// иначе просто запустить все программы.
+    /// «Открыть все»: запустить недостающие программы по порядку (с паузами) и, если у группы
+    /// запомнено рабочее пространство, разложить окна.
     /// </summary>
     public void OpenAll(Group group)
     {
-        if (!group.HasLayout)
-        {
-            foreach (var item in group.Items.ToList()) Launcher.Launch(item);
-            return;
-        }
-        Workspaces.Arrange(group, result =>
+        Workspaces.OpenAll(group, result =>
         {
             if (_editor?.IsVisible == true) _editor.ShowToast(Workspaces.Describe(result));
         });
     }
+
+    private bool _loginGroupsOpened;
+
+    /// <summary>Вход в Windows: открываем группы с «Открывать при входе», дав рабочему столу прогрузиться.</summary>
+    private void OpenLoginGroups()
+    {
+        if (_loginGroupsOpened) return;
+        _loginGroupsOpened = true;
+        var groups = Store.Config.Groups.Where(g => g.OpenAtLogin && g.Items.Count > 0).ToList();
+        if (groups.Count == 0) return;
+        var timer = new DispatcherTimer { Interval = LoginDelay };
+        timer.Tick += (_, _) =>
+        {
+            timer.Stop();
+            foreach (var g in groups) OpenAll(g);
+        };
+        timer.Start();
+    }
+
+    private static readonly TimeSpan LoginDelay = TimeSpan.FromSeconds(5);
 
     /// <summary>Пункт списка переходов закреплённой группы: открыть программу (или переключиться на неё).</summary>
     private void LaunchFromJumpList(string? groupId, string? itemId)

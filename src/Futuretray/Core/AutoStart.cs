@@ -12,7 +12,7 @@ public static class AutoStart
         try
         {
             using var key = Registry.CurrentUser.CreateSubKey(RunKey);
-            if (enabled) key.SetValue(ValueName, $"\"{ShortcutManager.ExePath}\" --background");
+            if (enabled) key.SetValue(ValueName, $"\"{ShortcutManager.ExePath}\" --startup");
             else if (key.GetValue(ValueName) != null) key.DeleteValue(ValueName, false);
         }
         catch (Exception ex)

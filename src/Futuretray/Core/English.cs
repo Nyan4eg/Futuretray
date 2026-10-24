@@ -46,15 +46,31 @@ internal static class English
 
         // ----- Рабочее пространство -----
         ["Рабочее пространство"] = "Workspace",
-        ["Расставьте окна программ группы как вам удобно и нажмите «Запомнить расположение». Потом «Разложить» — или «Открыть все» в окне группы — запустит недостающие программы и вернёт окна на свои места, в том числе на другие мониторы."] =
-            "Arrange the windows of this group's apps the way you like and click “Remember layout”. Later, “Arrange” — or “Open all” in the group popup — starts the missing apps and puts every window back in its place, other monitors included.",
+        ["Расставьте окна программ группы как вам удобно и нажмите «Запомнить расположение». Потом «Разложить» — или «Открыть все» в окне группы — запустит недостающие программы в порядке списка и вернёт окна на свои места. Для каждого набора мониторов расположение запоминается отдельно."] =
+            "Arrange the windows of this group's apps the way you like and click “Remember layout”. Later, “Arrange” — or “Open all” in the group popup — starts the missing apps in list order and puts every window back in its place. Each set of monitors gets its own layout.",
         ["Запомнить расположение"] = "Remember layout",
         ["Разложить"] = "Arrange",
         ["Забыть"] = "Forget",
         ["Раскладываю окна… недостающие программы запускаются"] = "Arranging windows… starting the missing apps",
         ["Расположение окон забыто"] = "Window layout forgotten",
         ["Расположение ещё не запомнено"] = "No layout remembered yet",
-        ["Запомнены места окон: {0} из {1}"] = "Window places remembered: {0} of {1}",
+        ["Для этих мониторов ({0}) запомнены места окон: {1} из {2}"] = "For these monitors ({0}), window places remembered: {1} of {2}",
+        ["Для этих мониторов ({0}) ничего не запомнено — «Разложить» возьмёт ближайшее из запомненных"] =
+            "Nothing remembered for these monitors ({0}) — “Arrange” will use the closest saved layout",
+        [" · Другие наборы мониторов: {0}"] = " · Other monitor sets: {0}",
+        ["Расположение для этих мониторов забыто"] = "Layout for these monitors forgotten",
+        ["Открывать при входе в Windows"] = "Open when I sign in to Windows",
+        ["Группа сама откроется и разложит окна после входа. Паузы между программами задаются в свойствах каждой."] =
+            "The group opens and arranges its windows by itself after you sign in. Set pauses between apps in each app's properties.",
+        ["Включён автозапуск Futuretray — без него группа не откроется при входе"] =
+            "Futuretray now starts with Windows — without that the group can't open at sign-in",
+        ["Пауза перед запуском"] = "Delay before start",
+        ["При «Открыть все»: сколько подождать после предыдущей программы группы — например, пока подключится VPN"] =
+            "For “Open all”: how long to wait after the previous app in the group — for example, until the VPN connects",
+        ["{0} с"] = "{0} s",
+        ["Сразу"] = "None",
+        ["Запущено программ: {0}"] = "Apps started: {0}",
+        [" · для этих мониторов места не запомнены — взяты с {0}"] = " · nothing saved for these monitors — used the layout from {0}",
         ["Ни одна программа группы не открыта — откройте их, расставьте окна и нажмите ещё раз"] =
             "None of this group's apps are open — open them, arrange the windows and click again",
         ["Запомнено окон: {0}"] = "Windows remembered: {0}",

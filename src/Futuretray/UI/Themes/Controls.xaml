@@ -15,6 +15,7 @@
     <ui:IntDoubleConverter x:Key="IntDouble"/>
     <ui:InverseBoolConverter x:Key="InverseBool"/>
     <ui:ColumnsTextConverter x:Key="ColumnsText"/>
+    <ui:DelayTextConverter x:Key="DelayText"/>
     <ui:PercentConverter x:Key="Percent"/>
     <ui:AppsCountConverter x:Key="AppsCount"/>
 

@@ -142,7 +142,7 @@ internal static class DebugSnapshot
         };
         var group = new Group { Name = "ws" };
         group.Items.Add(Form("FormA", ""));
-        group.Items.Add(Form("FormB", "-Delay 3 -Splash"));
+        group.Items.Add(Form("FormB", "-Delay 1 -Splash"));
         var running = RunningApps.Current!;
         var work = Monitors.Find(null).Work;
 
@@ -159,34 +159,37 @@ internal static class DebugSnapshot
         Launcher.Launch(new LaunchItem { Kind = ItemKind.Path, Target = ps, Name = "FormA", Arguments = group.Items[0].Arguments });
         await WaitWindows(1);
         var a = running.WindowsFor(group.Items[0]).First();
-        foreach (var w in running.WindowsFor(group.Items[0]))
-        {
-            Native.GetWindowThreadProcessId(w, out var wp);
-            sb.AppendLine($"found: {w} class={Native.ClassName(w)} pid={wp} iconic={Native.IsIconic(w)}");
-        }
         Native.SetWindowPos(a, IntPtr.Zero, work.Left + 50, work.Top + 60, 640, 480, Native.SWP_NOZORDER | Native.SWP_NOACTIVATE);
         await Task.Delay(300);
+        var profile = Workspaces.CurrentProfile;
         var capture = Workspaces.Capture(group);
+        sb.AppendLine($"profile: {profile} ({Workspaces.ScreensText(profile)})");
         sb.AppendLine($"capture: {Workspaces.Describe(capture)}");
-        var la = group.Items[0].Layout;
-        sb.AppendLine($"capture-ok: {capture.Saved == 1 && capture.NotRunning.Count == 1 && la != null}");
+        var la = group.Items[0].Layouts?.GetValueOrDefault(profile);
+        sb.AppendLine($"capture-ok: {capture.Saved == 1 && capture.NotRunning.Count == 1 && la?.Screen != null && group.Items[1].Layouts == null}");
         var restored = la == null ? default : Workspaces.ToRect(la, work);
         var actual = Native.VisibleBounds(a);
         sb.AppendLine($"capture-roundtrip: {restored.Left},{restored.Top},{restored.Width}x{restored.Height} vs {actual.Left},{actual.Top},{actual.Width}x{actual.Height}");
         CloseAll();
         await Task.Delay(800);
 
-        // 2. Разложить с запуском: левая и правая половины рабочей области.
-        group.Items[0].Layout = new WindowLayout { X = 0, Y = 0, Width = 0.5, Height = 0.6 };
-        group.Items[1].Layout = new WindowLayout { X = 0.5, Y = 0.2, Width = 0.5, Height = 0.6 };
-        var expected = group.Items.Select(i => Workspaces.ToRect(i.Layout!, work)).Select(r => $"{r.Left},{r.Top},{r.Width}x{r.Height}").Order().ToList();
-        sb.AppendLine($"expected: {string.Join("; ", expected)}");
+        // 2. Открыть все: B — через 2 с после A (пауза), окно у B появляется ещё позже и после заставки.
+        void SetLayouts(string key)
+        {
+            group.Items[0].Layouts = new() { [key] = new WindowLayout { X = 0, Y = 0, Width = 0.5, Height = 0.6 } };
+            group.Items[1].Layouts = new() { [key] = new WindowLayout { X = 0.5, Y = 0.2, Width = 0.5, Height = 0.6 } };
+        }
+        SetLayouts(profile);
+        group.Items[1].StartDelay = 2;
+        var expected = string.Join("; ", group.Items.Select(i => Workspaces.ToRect(i.Layouts![profile], work))
+            .Select(r => $"{r.Left},{r.Top},{r.Width}x{r.Height}").Order());
+        sb.AppendLine($"expected: {expected}");
 
-        async Task<Workspaces.ArrangeResult> ArrangeAndWait(int settle)
+        async Task<Workspaces.ArrangeResult> OpenAllAndWait(int settle)
         {
             var tcs = new TaskCompletionSource<Workspaces.ArrangeResult>();
             var started = DateTime.Now;
-            Workspaces.Arrange(group, r => tcs.TrySetResult(r));
+            Workspaces.OpenAll(group, r => tcs.TrySetResult(r));
             var result = await tcs.Task;
             sb.AppendLine($"  done after {(DateTime.Now - started).TotalSeconds:0.0}s: {Workspaces.Describe(result)}");
             await Task.Delay(settle);
@@ -194,23 +197,46 @@ internal static class DebugSnapshot
             return result;
         }
 
-        var r1 = await ArrangeAndWait(14000); // ждём конец наблюдения за заставкой
+        var r1 = await OpenAllAndWait(14000); // ждём конец наблюдения за заставкой
+        var starts = System.Diagnostics.Process.GetProcessesByName("ftform").Select(p => p.StartTime).Order().ToList();
+        var gap = starts.Count == 2 ? (starts[1] - starts[0]).TotalSeconds : -1;
+        sb.AppendLine($"start-gap: {gap:0.0}s");
+        sb.AppendLine($"delay-ok: {gap >= 1.9 && gap < 3.5}");
         var got = Rects();
         sb.AppendLine($"launch-arrange: {got}");
-        sb.AppendLine($"launch-arrange-ok: {r1.Placed == 2 && got == string.Join("; ", expected)}");
+        sb.AppendLine($"launch-arrange-ok: {r1.Launched == 2 && r1.Placed == 2 && r1.ExactProfile && got == expected}");
 
-        // 3. Уже открыты, но сдвинуты — раскладываются сразу.
-        foreach (var w in running.WindowsFor(group.Items[0]))
-            Native.SetWindowPos(w, IntPtr.Zero, work.Left + 300, work.Top + 300, 300, 200, Native.SWP_NOZORDER | Native.SWP_NOACTIVATE);
-        var r2 = await ArrangeAndWait(300);
+        // 3. Уже открыты, но сдвинуты — раскладываются сразу, второй раз не запускаются.
+        void Scatter()
+        {
+            foreach (var w in running.WindowsFor(group.Items[0]))
+                Native.SetWindowPos(w, IntPtr.Zero, work.Left + 300, work.Top + 300, 300, 200, Native.SWP_NOZORDER | Native.SWP_NOACTIVATE);
+        }
+        Scatter();
+        var r2 = await OpenAllAndWait(300);
         got = Rects();
         sb.AppendLine($"rearrange: {got}");
-        sb.AppendLine($"rearrange-ok: {r2.Placed == 2 && r2.NotFound.Count == 0 && got == string.Join("; ", expected)}");
+        sb.AppendLine($"rearrange-ok: {r2.Launched == 0 && r2.Placed == 2 && r2.NotFound.Count == 0 && got == expected}");
 
-        // 4. Развёрнутое окно.
-        group.Items[1].Layout!.Maximized = true;
-        await ArrangeAndWait(300);
+        // 4. Запомнено только для других мониторов — берётся оно.
+        SetLayouts("1280x720@0,0*");
+        Scatter();
+        var r3 = await OpenAllAndWait(300);
+        got = Rects();
+        sb.AppendLine($"other-profile: {got}");
+        sb.AppendLine($"other-profile-ok: {!r3.ExactProfile && r3.Placed == 2 && got == expected}");
+
+        // 5. Развёрнутое окно.
+        SetLayouts(profile);
+        group.Items[1].Layouts![profile].Maximized = true;
+        await OpenAllAndWait(300);
         sb.AppendLine($"maximized-ok: {running.WindowsFor(group.Items[0]).Count(Native.IsZoomed) == 1}");
+
+        // 6. Забыть только эти мониторы.
+        SetLayouts(profile);
+        group.Items[0].Layouts = new(group.Items[0].Layouts!) { ["1280x720@0,0*"] = new WindowLayout() };
+        Workspaces.Forget(group, profile);
+        sb.AppendLine($"forget-ok: {group.Items[0].Layouts?.Keys.SequenceEqual(["1280x720@0,0*"]) == true && group.Items[1].Layouts == null}");
 
         CloseAll();
         File.WriteAllText(Path.Combine(dir, "workspace.txt"), sb.ToString());

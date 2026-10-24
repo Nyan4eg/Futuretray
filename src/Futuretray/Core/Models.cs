@@ -43,7 +43,11 @@ public enum DockAlign { Start, Center, End }
 /// </summary>
 public sealed class WindowLayout
 {
+    /// <summary>Имя устройства монитора (\\.\DISPLAY2); null — основной.</summary>
     public string? Monitor { get; set; }
+    /// <summary>Границы монитора «x,y,ш,в» — по ним монитор находится, даже если Windows сменила его имя.</summary>
+    public string? Screen { get; set; }
+    public DateTime Captured { get; set; }
     public double X { get; set; }
     public double Y { get; set; }
     public double Width { get; set; }
@@ -73,10 +77,25 @@ public sealed class LaunchItem : Observable
     public bool RunAsAdmin { get => _runAsAdmin; set => Set(ref _runAsAdmin, value); }
     public string? CustomIconPath { get => _customIconPath; set { if (Set(ref _customIconPath, string.IsNullOrWhiteSpace(value) ? null : value)) IconInputsChanged(); } }
 
-    private WindowLayout? _layout;
+    private Dictionary<string, WindowLayout>? _layouts;
+    private int _startDelay;
 
-    /// <summary>Место окна для рабочего пространства группы; null — не запоминали.</summary>
-    public WindowLayout? Layout { get => _layout; set => Set(ref _layout, value); }
+    /// <summary>
+    /// Места окна для рабочего пространства группы — по одному на каждый набор мониторов
+    /// (ключ — <see cref="Workspaces.ProfileKey"/>). Меняется только заменой словаря целиком.
+    /// </summary>
+    public Dictionary<string, WindowLayout>? Layouts
+    {
+        get => _layouts;
+        set => Set(ref _layouts, value is { Count: > 0 } ? value : null);
+    }
+
+    /// <summary>Место из версии 1.6.0 (без привязки к набору мониторов) — переносится в <see cref="Layouts"/> при запуске.</summary>
+    [JsonPropertyName("Layout")]
+    public WindowLayout? LegacyLayout { get; set; }
+
+    /// <summary>Пауза в секундах перед запуском при «Открыть все» — после предыдущей программы группы.</summary>
+    public int StartDelay { get => _startDelay; set => Set(ref _startDelay, Math.Clamp(value, 0, 120)); }
 
     [JsonIgnore] public ImageSource? Icon => IconService.Current?.Get(this, IconService.TilePx);
 
@@ -119,7 +138,8 @@ public sealed class LaunchItem : Observable
         WorkingDirectory = WorkingDirectory,
         RunAsAdmin = RunAsAdmin,
         CustomIconPath = CustomIconPath,
-        Layout = Layout?.Clone(),
+        Layouts = Layouts?.ToDictionary(p => p.Key, p => p.Value.Clone()),
+        StartDelay = StartDelay,
     };
 }
 
@@ -156,6 +176,7 @@ public sealed class Group : Observable
     private string? _hotkey;
     private string? _sourceFolder;
     private bool _dockPlaced;
+    private bool _openAtLogin;
 
     public Group()
     {
@@ -231,6 +252,9 @@ public sealed class Group : Observable
     /// <summary>Трей уже ставили к краю при первом включении — дальше положение выбирает пользователь.</summary>
     public bool DockPlaced { get => _dockPlaced; set => Set(ref _dockPlaced, value); }
 
+    /// <summary>Открывать группу («Открыть все» с раскладкой окон) при входе в Windows.</summary>
+    public bool OpenAtLogin { get => _openAtLogin; set => Set(ref _openAtLogin, value); }
+
     /// <summary>
     /// Первое включение трея: ставим его к той же стороне экрана, где панель задач
     /// (снизу — рядом снизу, слева — столбцом слева), а не всегда слева.
@@ -259,7 +283,7 @@ public sealed class Group : Observable
     public void Touch() => Changed?.Invoke(this, EventArgs.Empty);
 
     /// <summary>Есть ли запомненное рабочее пространство (места окон).</summary>
-    [JsonIgnore] public bool HasLayout => Items.Any(i => i.Layout != null);
+    [JsonIgnore] public bool HasLayout => Items.Any(i => i.Layouts != null);
 
     [JsonIgnore] public ImageSource? Icon => GroupIconRenderer.Get(this, 96);
 

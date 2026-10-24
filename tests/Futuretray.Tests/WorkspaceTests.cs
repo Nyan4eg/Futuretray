@@ -62,33 +62,105 @@ public class WorkspaceTests
         Assert.True(rect.Width > 0 && rect.Height > 0);
     }
 
+    private const string Home = "1920x1080@0,0*|2560x1440@1920,0";
+    private const string Laptop = "1920x1200@0,0*";
+
+    private static MonitorInfo M(int l, int t, int w, int h, bool primary, string device = "") =>
+        new(IntPtr.Zero, device, R(l, t, l + w, t + h), R(l, t, l + w, t + h - 48), primary);
+
     [Fact]
-    public void Layout_SurvivesSaveAndClone()
+    public void ProfileKey_DescribesMonitorsLeftToRight()
     {
-        var item = ItemFactory.FromUrl("https://example.com");
-        item.Layout = new WindowLayout { Monitor = @"\\.\DISPLAY2", X = 0.5, Y = 0.1, Width = 0.5, Height = 0.8, Maximized = true };
-
-        var copy = item.Clone();
-        Assert.NotSame(item.Layout, copy.Layout);
-        Assert.Equal(item.Layout.X, copy.Layout!.X);
-
-        var json = JsonSerializer.Serialize(item.Layout);
-        var back = JsonSerializer.Deserialize<WindowLayout>(json)!;
-        Assert.Equal(@"\\.\DISPLAY2", back.Monitor);
-        Assert.True(back.Maximized);
+        var key = Workspaces.ProfileKey([M(1920, 0, 2560, 1440, false), M(0, 0, 1920, 1080, true)]);
+        Assert.Equal(Home, key);
+        Assert.Equal("1920×1080 + 2560×1440", Workspaces.ScreensText(key));
     }
 
     [Fact]
-    public void Group_KnowsWhetherItHasLayout()
+    public void PickProfile_PrefersCurrentThenSameMonitorCountThenNewest()
+    {
+        var now = DateTime.Now;
+        var profiles = new Dictionary<string, DateTime>
+        {
+            [Home] = now.AddDays(-3),
+            [Laptop] = now.AddDays(-1),
+            ["1280x720@0,0*|1280x720@1280,0"] = now.AddDays(-2),
+        };
+        Assert.Equal(Laptop, Workspaces.PickProfile(profiles, Laptop));
+        // Два других монитора: из двухмониторных берём самое свежее.
+        Assert.Equal("1280x720@0,0*|1280x720@1280,0", Workspaces.PickProfile(profiles, "1920x1080@0,0*|1920x1080@1920,0"));
+        // Три монитора: таких нет — самое свежее вообще.
+        Assert.Equal(Laptop, Workspaces.PickProfile(profiles, "1x1@0,0*|1x1@1,0|1x1@2,0"));
+        Assert.Null(Workspaces.PickProfile(new Dictionary<string, DateTime>(), Laptop));
+    }
+
+    [Fact]
+    public void FindMonitor_ByBoundsEvenIfDeviceNameChanged()
+    {
+        var monitors = new[] { M(0, 0, 1920, 1080, true, @"\\.\DISPLAY1"), M(1920, 0, 2560, 1440, false, @"\\.\DISPLAY7") };
+        var layout = new WindowLayout { Monitor = @"\\.\DISPLAY2", Screen = "1920,0,2560,1440" };
+        Assert.Same(monitors[1], Workspaces.FindMonitor(layout, monitors));
+        Assert.Same(monitors[0], Workspaces.FindMonitor(new WindowLayout { Monitor = @"\\.\DISPLAY9" }, monitors));
+    }
+
+    [Fact]
+    public void Layouts_SurviveSaveAndClone()
+    {
+        var item = ItemFactory.FromUrl("https://example.com");
+        item.StartDelay = 5;
+        item.Layouts = new() { [Home] = new WindowLayout { Monitor = @"\\.\DISPLAY2", Screen = "1920,0,2560,1440", X = 0.5, Width = 0.5, Height = 0.8, Maximized = true } };
+
+        var copy = item.Clone();
+        Assert.NotSame(item.Layouts[Home], copy.Layouts![Home]);
+        Assert.Equal(5, copy.StartDelay);
+
+        var back = JsonSerializer.Deserialize<LaunchItem>(JsonSerializer.Serialize(item, ConfigStore.JsonOptions), ConfigStore.JsonOptions)!;
+        Assert.True(back.Layouts![Home].Maximized);
+        Assert.Equal("1920,0,2560,1440", back.Layouts[Home].Screen);
+        Assert.Equal(5, back.StartDelay);
+    }
+
+    [Fact]
+    public void LayoutFromVersion160_MovesToCurrentMonitors()
+    {
+        var item = JsonSerializer.Deserialize<LaunchItem>("""{"Name":"x","Layout":{"X":0.25,"Width":0.5,"Height":0.5}}""", ConfigStore.JsonOptions)!;
+        var g = new Group();
+        g.Items.Add(item);
+        Assert.True(Workspaces.MigrateLegacy([g], Laptop));
+        Assert.Equal(0.25, item.Layouts![Laptop].X);
+        Assert.Null(item.LegacyLayout);
+        Assert.False(Workspaces.MigrateLegacy([g], Laptop));
+        Assert.DoesNotContain("\"Layout\"", JsonSerializer.Serialize(item, ConfigStore.JsonOptions));
+    }
+
+    [Fact]
+    public void StartDelay_IsClamped()
+    {
+        var item = new LaunchItem { StartDelay = 999 };
+        Assert.Equal(120, item.StartDelay);
+        item.StartDelay = -3;
+        Assert.Equal(0, item.StartDelay);
+    }
+
+    [Fact]
+    public void Group_KnowsWhetherItHasLayout_AndForgetsPerMonitorSet()
     {
         var g = new Group();
         g.Items.Add(ItemFactory.FromUrl("https://example.com"));
         Assert.False(g.HasLayout);
-        g.Items[0].Layout = new WindowLayout { Width = 1, Height = 1 };
+        g.Items[0].Layouts = new() { [Home] = new WindowLayout(), [Laptop] = new WindowLayout() };
         Assert.True(g.HasLayout);
+        Assert.Equal(2, Workspaces.Profiles(g).Count);
+
+        Workspaces.Forget(g, Laptop);
+        Assert.Equal([Home], g.Items[0].Layouts!.Keys);
         Workspaces.Forget(g);
         Assert.False(g.HasLayout);
     }
+
+    [Fact]
+    public void StartupArgument_IsItsOwnCommand() =>
+        Assert.Equal(CommandKind.Startup, HostCommand.Parse(new[] { "--startup" }).Kind);
 
     [Fact]
     public void ArrangeArgument_IsParsedAndSurvivesPipe()

@@ -407,25 +407,46 @@ public partial class MainWindow : Window
     {
         if (_group == null) return;
         ShowToast(Loc.T("Раскладываю окна… недостающие программы запускаются"));
-        Workspaces.Arrange(_group, result => ShowToast(Workspaces.Describe(result)));
+        Workspaces.OpenAll(_group, result => ShowToast(Workspaces.Describe(result)));
     }
 
+    /// <summary>«Забыть» убирает расположение для текущих мониторов, а если для них ничего нет — все остальные.</summary>
     private void ForgetLayout_Click(object sender, RoutedEventArgs e)
     {
         if (_group == null) return;
-        Workspaces.Forget(_group);
+        var current = Workspaces.CurrentProfile;
+        bool forCurrent = Workspaces.Profiles(_group).ContainsKey(current);
+        Workspaces.Forget(_group, forCurrent ? current : null);
         UpdateLayoutStatus();
-        ShowToast(Loc.T("Расположение окон забыто"));
+        ShowToast(forCurrent ? Loc.T("Расположение для этих мониторов забыто") : Loc.T("Расположение окон забыто"));
+    }
+
+    private void OpenAtLogin_Click(object sender, RoutedEventArgs e)
+    {
+        // Без автозапуска Futuretray группе нечем открыться при входе — включаем его.
+        var settings = App.Host.Store.Config.Settings;
+        if (_group?.OpenAtLogin != true || settings.RunAtStartup) return;
+        settings.RunAtStartup = true;
+        ShowToast(Loc.T("Включён автозапуск Futuretray — без него группа не откроется при входе"));
     }
 
     private void UpdateLayoutStatus()
     {
         if (_group == null) return;
-        int saved = _group.Items.Count(i => i.Layout != null);
-        LayoutStatus.Text = saved == 0
-            ? Loc.T("Расположение ещё не запомнено")
-            : Loc.F("Запомнены места окон: {0} из {1}", saved, _group.Items.Count);
-        ArrangeButton.IsEnabled = ForgetLayoutButton.IsEnabled = saved > 0;
+        var profiles = Workspaces.Profiles(_group);
+        var current = Workspaces.CurrentProfile;
+        var others = profiles.Keys.Where(k => k != current).Select(Workspaces.ScreensText).ToList();
+        int saved = _group.Items.Count(i => i.Layouts?.ContainsKey(current) == true);
+
+        string text;
+        if (profiles.Count == 0) text = Loc.T("Расположение ещё не запомнено");
+        else if (saved > 0)
+            text = Loc.F("Для этих мониторов ({0}) запомнены места окон: {1} из {2}", Workspaces.ScreensText(current), saved, _group.Items.Count);
+        else
+            text = Loc.F("Для этих мониторов ({0}) ничего не запомнено — «Разложить» возьмёт ближайшее из запомненных", Workspaces.ScreensText(current));
+        if (others.Count > 0) text += Loc.F(" · Другие наборы мониторов: {0}", string.Join("; ", others));
+        LayoutStatus.Text = text;
+        ArrangeButton.IsEnabled = ForgetLayoutButton.IsEnabled = profiles.Count > 0;
     }
 
     private void UpdateHotkeyErrors()

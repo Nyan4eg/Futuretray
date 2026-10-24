@@ -226,6 +226,7 @@
                                             <RowDefinition Height="Auto"/>
                                             <RowDefinition Height="Auto"/>
                                             <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
                                         </Grid.RowDefinitions>
 
                                         <TextBlock Text="{ui:T 'Название'}" Style="{StaticResource FieldLabel}"/>
@@ -252,6 +253,17 @@
                                                    Visibility="{Binding IsPath, Converter={StaticResource BoolVisible}}"/>
                                         <CheckBox Grid.Row="4" Grid.Column="1" Style="{StaticResource Toggle}" Margin="0,2,0,6" HorizontalAlignment="Left"
                                                   IsChecked="{Binding RunAsAdmin}" Visibility="{Binding IsPath, Converter={StaticResource BoolVisible}}"/>
+
+                                        <TextBlock Grid.Row="5" Text="{ui:T 'Пауза перед запуском'}" Style="{StaticResource FieldLabel}"
+                                                   ToolTip="{ui:T 'При «Открыть все»: сколько подождать после предыдущей программы группы — например, пока подключится VPN'}"/>
+                                        <StackPanel Grid.Row="5" Grid.Column="1" Grid.ColumnSpan="2" Orientation="Horizontal" Margin="0,2,0,6"
+                                                    ToolTip="{ui:T 'При «Открыть все»: сколько подождать после предыдущей программы группы — например, пока подключится VPN'}">
+                                            <Slider Width="220" Minimum="0" Maximum="60" SmallChange="1" LargeChange="5"
+                                                    IsSnapToTickEnabled="True" TickFrequency="1" VerticalAlignment="Center"
+                                                    Value="{Binding StartDelay, Converter={StaticResource IntDouble}}"/>
+                                            <TextBlock Text="{Binding StartDelay, Converter={StaticResource DelayText}}" Margin="12,0,0,0"
+                                                       VerticalAlignment="Center" Foreground="{DynamicResource Brush.TextSecondary}"/>
+                                        </StackPanel>
                                     </Grid>
                                     <WrapPanel Margin="-12,10,0,0">
                                         <Button Style="{StaticResource Button.Subtle}" ui:Ui.Glyph="&#xE768;" Content="{ui:T 'Запустить'}" Click="RunItem_Click"/>
@@ -290,14 +302,27 @@
                             <StackPanel>
                                 <TextBlock Text="{ui:T 'Рабочее пространство'}" Style="{StaticResource Text.Subtitle}"/>
                                 <TextBlock Style="{StaticResource Text.Caption}" Margin="0,4,0,0"
-                                           Text="{ui:T 'Расставьте окна программ группы как вам удобно и нажмите «Запомнить расположение». Потом «Разложить» — или «Открыть все» в окне группы — запустит недостающие программы и вернёт окна на свои места, в том числе на другие мониторы.'}"/>
+                                           Text="{ui:T 'Расставьте окна программ группы как вам удобно и нажмите «Запомнить расположение». Потом «Разложить» — или «Открыть все» в окне группы — запустит недостающие программы в порядке списка и вернёт окна на свои места. Для каждого набора мониторов расположение запоминается отдельно.'}"/>
                                 <WrapPanel Margin="0,14,0,0">
                                     <Button Style="{StaticResource Button.Accent}" ui:Ui.Glyph="&#xE74E;" Content="{ui:T 'Запомнить расположение'}"
                                             Margin="0,0,8,0" Click="CaptureLayout_Click"/>
                                     <Button x:Name="ArrangeButton" ui:Ui.Glyph="&#xE7F4;" Content="{ui:T 'Разложить'}" Margin="0,0,8,0" Click="ArrangeLayout_Click"/>
                                     <Button x:Name="ForgetLayoutButton" Style="{StaticResource Button.Subtle}" Content="{ui:T 'Забыть'}" Click="ForgetLayout_Click"/>
                                 </WrapPanel>
-                                <TextBlock x:Name="LayoutStatus" Style="{StaticResource Text.Caption}" Margin="0,10,0,0"/>
+                                <TextBlock x:Name="LayoutStatus" Style="{StaticResource Text.Caption}" Margin="0,10,0,0" TextWrapping="Wrap"/>
+                                <Border Style="{StaticResource RowDivider}" Margin="0,14,0,0"/>
+                                <Grid Margin="0,14,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel VerticalAlignment="Center" Margin="0,0,16,0">
+                                        <TextBlock Text="{ui:T 'Открывать при входе в Windows'}"/>
+                                        <TextBlock Style="{StaticResource Text.Caption}" TextWrapping="Wrap"
+                                                   Text="{ui:T 'Группа сама откроется и разложит окна после входа. Паузы между программами задаются в свойствах каждой.'}"/>
+                                    </StackPanel>
+                                    <CheckBox Grid.Column="1" Style="{StaticResource Toggle}" IsChecked="{Binding OpenAtLogin}" Click="OpenAtLogin_Click"/>
+                                </Grid>
                             </StackPanel>
                         </Border>
 
