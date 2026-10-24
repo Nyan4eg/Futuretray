@@ -12,7 +12,9 @@ public sealed class GroupTilesView : ContentControl
 {
     private readonly UniformGrid _grid = new();
     private readonly List<Button> _tiles = new();
+    private readonly Dictionary<Button, Border> _indicators = new();
     private Group? _group;
+    private bool _trackingRunning;
     private bool _rebuildQueued;
 
     public GroupTilesView()
@@ -31,8 +33,11 @@ public sealed class GroupTilesView : ContentControl
     /// <summary>В трее плитки не забирают фокус клавиатуры.</summary>
     public bool TilesFocusable { get; set; } = true;
 
-    /// <summary>Запуск элемента; второй аргумент — «не закрывать окно» (Ctrl/средняя кнопка).</summary>
-    public event Action<LaunchItem, bool>? ItemInvoked;
+    /// <summary>Клик по элементу: (элемент, не закрывать окно — Ctrl, новая копия — Shift или средняя кнопка).</summary>
+    public event Action<LaunchItem, bool, bool>? ItemInvoked;
+
+    /// <summary>С какой стороны плитки рисовать индикатор запущенной программы (в трее — к краю экрана).</summary>
+    public Dock IndicatorSide { get; set; } = Dock.Bottom;
     public event Action<LaunchItem, Button>? ItemMenuRequested;
 
     public IReadOnlyList<Button> Tiles => _tiles;
@@ -42,12 +47,20 @@ public sealed class GroupTilesView : ContentControl
         if (_group != null) _group.Changed -= OnGroupChanged;
         _group = group;
         _group.Changed += OnGroupChanged;
+        if (!IsPreview && !_trackingRunning && RunningApps.Current is { } running)
+        {
+            running.Changed += UpdateIndicators;
+            _trackingRunning = true;
+        }
         Rebuild();
     }
 
     public void Unbind()
     {
         if (_group != null) _group.Changed -= OnGroupChanged;
+        if (_trackingRunning && RunningApps.Current is { } running) running.Changed -= UpdateIndicators;
+        _trackingRunning = false;
+        _indicators.Clear();
         _group = null;
         _grid.Children.Clear();
         _tiles.Clear();
@@ -82,6 +95,7 @@ public sealed class GroupTilesView : ContentControl
     {
         _grid.Children.Clear();
         _tiles.Clear();
+        _indicators.Clear();
         if (_group == null) return;
 
         var g = _group;
@@ -112,6 +126,27 @@ public sealed class GroupTilesView : ContentControl
             _tiles.Add(tile);
             _grid.Children.Add(tile);
         }
+        UpdateIndicators();
+    }
+
+    /// <summary>Чёрточка у плитки: короткая — программа открыта, длинная цветом акцента — она сейчас активна.</summary>
+    public void UpdateIndicators()
+    {
+        var running = RunningApps.Current;
+        foreach (var (tile, pill) in _indicators)
+        {
+            var item = (LaunchItem)tile.Tag;
+            bool isRunning = running?.IsRunning(item) == true;
+            pill.Visibility = isRunning ? Visibility.Visible : Visibility.Collapsed;
+            if (!isRunning) continue;
+
+            bool active = running!.IsActive(item);
+            double length = active ? 14 : 6;
+            bool across = IndicatorSide is Dock.Left or Dock.Right;
+            pill.Width = across ? 3 : length;
+            pill.Height = across ? length : 3;
+            pill.SetResourceReference(Border.BackgroundProperty, active ? "Brush.Accent" : "Brush.TextSecondary");
+        }
     }
 
     private Button CreateTile(LaunchItem item, int index, double w, double h, double iconSize, bool labels)
@@ -137,9 +172,28 @@ public sealed class GroupTilesView : ContentControl
             });
         }
 
+        var content = new Grid();
+        content.Children.Add(panel);
+        Border? pill = null;
+        if (!IsPreview)
+        {
+            pill = new Border
+            {
+                CornerRadius = new CornerRadius(1.5),
+                Visibility = Visibility.Collapsed,
+                IsHitTestVisible = false,
+                HorizontalAlignment = IndicatorSide switch { Dock.Left => HorizontalAlignment.Left, Dock.Right => HorizontalAlignment.Right, _ => HorizontalAlignment.Center },
+                VerticalAlignment = IndicatorSide switch { Dock.Top => VerticalAlignment.Top, Dock.Bottom => VerticalAlignment.Bottom, _ => VerticalAlignment.Center },
+                Margin = new Thickness(2),
+            };
+            content.Children.Add(pill);
+        }
+
         var tile = new Button
         {
-            Content = panel,
+            Content = content,
+            HorizontalContentAlignment = HorizontalAlignment.Stretch,
+            VerticalContentAlignment = VerticalAlignment.Stretch,
             Width = w,
             Height = h,
             Margin = new Thickness(2),
@@ -149,6 +203,7 @@ public sealed class GroupTilesView : ContentControl
         if (!labels) tile.ToolTip = index < 9 ? $"{item.Name}  ·  {index + 1}" : item.Name;
         AutomationName(tile, item.Name);
 
+        if (pill != null) _indicators[tile] = pill;
         if (!TilesFocusable) tile.Focusable = false;
         if (IsPreview)
         {
@@ -156,12 +211,13 @@ public sealed class GroupTilesView : ContentControl
             return tile;
         }
 
-        tile.Click += (_, _) => ItemInvoked?.Invoke(item, Keyboard.Modifiers.HasFlag(ModifierKeys.Control));
+        tile.Click += (_, _) => ItemInvoked?.Invoke(item,
+            Keyboard.Modifiers.HasFlag(ModifierKeys.Control), Keyboard.Modifiers.HasFlag(ModifierKeys.Shift));
         tile.PreviewMouseUp += (_, e) =>
         {
             if (e.ChangedButton != MouseButton.Middle) return;
             e.Handled = true;
-            ItemInvoked?.Invoke(item, true);
+            ItemInvoked?.Invoke(item, true, true);
         };
         tile.MouseRightButtonUp += (_, e) =>
         {

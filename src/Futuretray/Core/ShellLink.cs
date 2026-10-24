@@ -4,13 +4,11 @@ using System.Text;
 
 namespace Futuretray.Core;
 
-public sealed record LinkInfo(string Target, string Arguments, string IconPath);
+public sealed record LinkInfo(string Target, string Arguments, string IconPath, string? AppUserModelId = null);
 
 /// <summary>Создание и чтение .lnk через IShellLink, включая AppUserModelID.</summary>
 internal static class ShellLink
 {
-    private static PropertyKey AppUserModelIdKey = new(new Guid("9F4C2855-9F79-4B39-A8D0-E1D42DE1D5F3"), 5);
-
     public static void Save(string path, string target, string arguments, string? workingDirectory,
         string iconPath, string? description, string? appUserModelId)
     {
@@ -43,7 +41,8 @@ internal static class ShellLink
             link.GetArguments(args, args.Capacity);
             var icon = new StringBuilder(1024);
             link.GetIconLocation(icon, icon.Capacity, out _);
-            return new LinkInfo(target.ToString(), args.ToString(), icon.ToString());
+            var appId = PropertyStore.GetString((IPropertyStore)link, ref PropertyStore.AppUserModelId);
+            return new LinkInfo(target.ToString(), args.ToString(), icon.ToString(), appId);
         }
         catch
         {
@@ -80,37 +79,8 @@ internal static class ShellLink
         }
     }
 
-    private static void SetAppId(IPropertyStore store, string appId)
-    {
-        var value = new PropVariant { vt = 31 /* VT_LPWSTR */, pointer = Marshal.StringToCoTaskMemUni(appId) };
-        try
-        {
-            store.SetValue(ref AppUserModelIdKey, ref value);
-            store.Commit();
-        }
-        finally
-        {
-            PropVariantClear(ref value);
-        }
-    }
-
-    [DllImport("ole32.dll")]
-    private static extern int PropVariantClear(ref PropVariant pvar);
-
-    [StructLayout(LayoutKind.Sequential, Pack = 4)]
-    private struct PropertyKey
-    {
-        public Guid FormatId;
-        public uint PropertyId;
-        public PropertyKey(Guid formatId, uint propertyId) { FormatId = formatId; PropertyId = propertyId; }
-    }
-
-    [StructLayout(LayoutKind.Explicit, Size = 24)]
-    private struct PropVariant
-    {
-        [FieldOffset(0)] public ushort vt;
-        [FieldOffset(8)] public IntPtr pointer;
-    }
+    private static void SetAppId(IPropertyStore store, string appId) =>
+        PropertyStore.SetString(store, ref PropertyStore.AppUserModelId, appId);
 
     [ComImport, Guid("00021401-0000-0000-C000-000000000046")]
     private class CShellLink { }
@@ -136,15 +106,5 @@ internal static class ShellLink
         void SetRelativePath([MarshalAs(UnmanagedType.LPWStr)] string relativePath, uint reserved);
         void Resolve(IntPtr hwnd, uint flags);
         void SetPath([MarshalAs(UnmanagedType.LPWStr)] string file);
-    }
-
-    [ComImport, Guid("886D8EEB-8CF2-4446-8D02-CDBA1DBDCF99"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
-    private interface IPropertyStore
-    {
-        void GetCount(out uint count);
-        void GetAt(uint index, out PropertyKey key);
-        void GetValue(ref PropertyKey key, out PropVariant value);
-        void SetValue(ref PropertyKey key, ref PropVariant value);
-        void Commit();
     }
 }

@@ -58,6 +58,7 @@ internal static class DebugSnapshot
                 if (i > 0) Save(editor!, Path.Combine(dir, $"{i:00}-{steps[i - 1].name}.png"));
                 if (i == steps.Count)
                 {
+                    SaveRunning(app, dir);
                     SavePopup(app, dir);
                     SaveDocks(app, dir);
                     DiagnosticsReport.Create(app.Store, dir);
@@ -95,6 +96,39 @@ internal static class DebugSnapshot
             Save(popup, Path.Combine(dir, $"popup-{idx}.png"));
             popup.Close();
         }
+    }
+
+    /// <summary>Какие окна видит трекер и какие элементы групп он считает запущенными.</summary>
+    private static void SaveRunning(App app, string dir)
+    {
+        var running = app.Running;
+        running.Refresh();
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine("== Окна ==");
+        foreach (var w in running.Windows)
+            sb.AppendLine($"{w.Handle} pid={w.ProcessId} {w.Path} appid={w.AppId} process-appid={w.ProcessAppId}");
+
+        void Report(string title, IEnumerable<Group> groups)
+        {
+            sb.AppendLine().AppendLine($"== {title} ==");
+            foreach (var g in groups)
+                foreach (var item in g.Items)
+                    sb.AppendLine($"[{g.Name}] {item.Name} ({item.Kind}: {item.Target}) → окон: {running.WindowsFor(item).Count}, активна: {running.IsActive(item)}");
+        }
+
+        Report("Демо-группы", app.Store.Config.Groups);
+        var real = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Futuretray", "config.json");
+        if (File.Exists(real) &&
+            System.Text.Json.JsonSerializer.Deserialize<AppConfig>(File.ReadAllText(real), ConfigStore.JsonOptions) is { } config)
+            Report("Настоящие группы (только чтение)", config.Groups);
+        // Все ярлыки «Пуска»: какие из запущенных программ узнаются.
+        var startMenu = new[] { Environment.SpecialFolder.Programs, Environment.SpecialFolder.CommonPrograms }
+            .SelectMany(f => System.IO.Directory.GetFiles(Environment.GetFolderPath(f), "*.lnk", SearchOption.AllDirectories))
+            .Select(ItemFactory.FromPath).ToList();
+        var found = startMenu.Where(i => running.WindowsFor(i).Count > 0).ToList();
+        sb.AppendLine().AppendLine($"== Ярлыки «Пуска»: {startMenu.Count}, узнаны как запущенные: {found.Count} ==");
+        foreach (var item in found) sb.AppendLine($"{item.Name} → окон: {running.WindowsFor(item).Count}");
+        File.WriteAllText(Path.Combine(dir, "running.txt"), sb.ToString());
     }
 
     private static void SaveDocks(App app, string dir)

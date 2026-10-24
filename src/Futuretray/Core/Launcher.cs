@@ -5,6 +5,17 @@ namespace Futuretray.Core;
 
 public static class Launcher
 {
+    /// <summary>
+    /// Клик по плитке: если программа уже открыта — переключиться на её окно (как панель задач),
+    /// иначе запустить. newInstance — всегда запускать ещё одну копию (Shift+клик, средняя кнопка).
+    /// </summary>
+    public static string? Open(LaunchItem item, bool newInstance = false)
+    {
+        bool switchToRunning = App.Host.Store.Config.Settings.SwitchToRunning;
+        if (!newInstance && switchToRunning && RunningApps.Current?.Switch(item) == true) return null;
+        return Launch(item);
+    }
+
     /// <returns>null при успехе, иначе текст ошибки для пользователя.</returns>
     public static string? Launch(LaunchItem item, bool forceAdmin = false)
     {

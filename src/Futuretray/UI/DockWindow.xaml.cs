@@ -60,7 +60,7 @@ public partial class DockWindow : Window
 
         Tiles.TilesFocusable = false;
         Tiles.Bind(group);
-        Tiles.ItemInvoked += (item, _) => Launch(item);
+        Tiles.ItemInvoked += (item, _, newInstance) => Launch(item, newInstance);
         Tiles.ItemMenuRequested += OnItemMenu;
         MouseRightButtonUp += OnBackgroundMenu;
         SourceInitialized += OnSourceInitialized;
@@ -68,6 +68,7 @@ public partial class DockWindow : Window
         {
             _hoverTimer?.Stop();
             _slideTimer?.Stop();
+            Tiles.Unbind();
             RemoveAppBar();
         };
     }
@@ -168,6 +169,13 @@ public partial class DockWindow : Window
         bool vertical = Vertical;
         Body.Orientation = vertical ? Orientation.Vertical : Orientation.Horizontal;
         Tiles.Line = vertical ? Orientation.Vertical : Orientation.Horizontal;
+        Tiles.IndicatorSide = Group.DockEdge switch
+        {
+            DockEdge.Left => Dock.Left,
+            DockEdge.Right => Dock.Right,
+            DockEdge.Top => Dock.Top,
+            _ => Dock.Bottom,
+        };
         Tiles.Rebuild();
 
         Grip.Visibility = Free ? Visibility.Visible : Visibility.Collapsed;
@@ -522,9 +530,9 @@ public partial class DockWindow : Window
 
     // ================= Запуск и меню =================
 
-    private void Launch(LaunchItem item)
+    private void Launch(LaunchItem item, bool newInstance = false)
     {
-        if (Launcher.Launch(item) is not { } error) return;
+        if (Launcher.Open(item, newInstance) is not { } error) return;
         var tip = new ToolTip { Content = error, PlacementTarget = Root, Placement = PlacementMode.Mouse, StaysOpen = false };
         if (_theme != null) tip.Resources.MergedDictionaries.Add(_theme);
         tip.IsOpen = true;
@@ -549,6 +557,7 @@ public partial class DockWindow : Window
     private void OnItemMenu(LaunchItem item, Button tile)
     {
         var menu = NewMenu(tile);
+        PopupWindow.AddRunningItems(menu, item);
         menu.Items.Add(App.MenuItem("", "Открыть", () => Launch(item)));
         if (item.Kind == ItemKind.Path)
             menu.Items.Add(App.MenuItem("", "Запустить от имени администратора", () => Launcher.Launch(item, forceAdmin: true)));

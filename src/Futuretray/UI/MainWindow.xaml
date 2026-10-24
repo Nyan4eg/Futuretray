@@ -389,7 +389,7 @@
                                     </Grid.ColumnDefinitions>
                                     <StackPanel VerticalAlignment="Center">
                                         <TextBlock Text="Закрывать окно после запуска"/>
-                                        <TextBlock Text="Ctrl+клик или средняя кнопка мыши — запустить, не закрывая" Style="{StaticResource Text.Caption}"/>
+                                        <TextBlock Text="Ctrl+клик — не закрывать окно группы. Shift+клик или средняя кнопка — открыть ещё одну копию программы" Style="{StaticResource Text.Caption}" TextWrapping="Wrap"/>
                                     </StackPanel>
                                     <CheckBox Grid.Column="1" Style="{StaticResource Toggle}" IsChecked="{Binding CloseAfterLaunch}"/>
                                 </Grid>
@@ -615,6 +615,21 @@
                                     <TextBlock Text="Быстрый доступ к редактору и группам из трея" Style="{StaticResource Text.Caption}"/>
                                 </StackPanel>
                                 <CheckBox Grid.Column="1" Style="{StaticResource Toggle}" IsChecked="{Binding ShowTrayIcon}"/>
+                            </Grid>
+                        </Border>
+
+                        <Border Style="{StaticResource Card}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel VerticalAlignment="Center" Margin="0,0,16,0">
+                                    <TextBlock Text="Переключаться на уже открытую программу"/>
+                                    <TextBlock Style="{StaticResource Text.Caption}"
+                                               Text="Как на панели задач: клик по запущенной программе показывает её окно, повторный — сворачивает, при нескольких окнах — перебирает их. Чёрточка под значком — программа открыта, длинная — активна. Shift+клик всегда запускает новую копию."/>
+                                </StackPanel>
+                                <CheckBox Grid.Column="1" Style="{StaticResource Toggle}" IsChecked="{Binding SwitchToRunning}"/>
                             </Grid>
                         </Border>
 

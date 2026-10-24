@@ -28,6 +28,7 @@ public partial class PopupWindow : Window
 
         Tiles.Bind(group);
         Tiles.ItemInvoked += OnItemInvoked;
+        Closed += (_, _) => Tiles.Unbind();
         Tiles.ItemMenuRequested += OnItemMenu;
 
         SourceInitialized += (_, _) => WindowEffects.MakeToolWindow(this);
@@ -133,9 +134,9 @@ public partial class PopupWindow : Window
         Body.BeginAnimation(OpacityProperty, new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(140)));
     }
 
-    private void OnItemInvoked(LaunchItem item, bool keepOpen)
+    private void OnItemInvoked(LaunchItem item, bool keepOpen, bool newInstance = false)
     {
-        var error = Launcher.Launch(item);
+        var error = Launcher.Open(item, newInstance);
         if (error != null)
         {
             ShowStatus("", error, TimeSpan.FromSeconds(4));
@@ -162,9 +163,20 @@ public partial class PopupWindow : Window
         return menu;
     }
 
+    /// <summary>Пункты для уже открытой программы: ещё одна копия и закрытие её окон.</summary>
+    public static void AddRunningItems(ContextMenu menu, LaunchItem item)
+    {
+        if (RunningApps.Current is not { } running || !running.IsRunning(item)) return;
+        menu.Items.Add(App.MenuItem("", "Новое окно", () => Launcher.Launch(item)));
+        int count = running.WindowsFor(item).Count;
+        menu.Items.Add(App.MenuItem("", count > 1 ? $"Закрыть все окна ({count})" : "Закрыть окно", () => running.CloseWindows(item)));
+        menu.Items.Add(new Separator());
+    }
+
     private void OnItemMenu(LaunchItem item, Button tile)
     {
         var menu = NewMenu(tile);
+        AddRunningItems(menu, item);
         menu.Items.Add(App.MenuItem("", "Открыть", () => OnItemInvoked(item, false)));
         if (item.Kind == ItemKind.Path)
             menu.Items.Add(App.MenuItem("", "Запустить от имени администратора", () =>
@@ -213,6 +225,7 @@ public partial class PopupWindow : Window
     private void OnPreviewKeyDown(object sender, KeyEventArgs e)
     {
         bool ctrl = Keyboard.Modifiers.HasFlag(ModifierKeys.Control);
+        bool shift = Keyboard.Modifiers.HasFlag(ModifierKeys.Shift);
         switch (e.Key)
         {
             case Key.Escape:
@@ -225,13 +238,13 @@ public partial class PopupWindow : Window
                 e.Handled = true;
                 break;
             case Key.Enter when _filter.Length > 0:
-                if (Tiles.ApplyFilter(_filter)?.Tag is LaunchItem match) OnItemInvoked(match, ctrl);
+                if (Tiles.ApplyFilter(_filter)?.Tag is LaunchItem match) OnItemInvoked(match, ctrl, shift);
                 e.Handled = true;
                 break;
             default:
                 if (_filter.Length == 0 && DigitIndex(e.Key) is { } index)
                 {
-                    if (index < Group.Items.Count) OnItemInvoked(Group.Items[index], ctrl);
+                    if (index < Group.Items.Count) OnItemInvoked(Group.Items[index], ctrl, shift);
                     e.Handled = true;
                 }
                 break;

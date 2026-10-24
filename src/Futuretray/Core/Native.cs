@@ -173,6 +173,60 @@ public static class Native
     public const long WS_EX_NOACTIVATE = 0x08000000;
     public const int WM_MOUSEACTIVATE = 0x21, MA_NOACTIVATE = 3;
 
+    // ----- Окна других программ -----
+
+    public delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
+    public delegate void WinEventProc(IntPtr hook, uint eventType, IntPtr hWnd, int idObject, int idChild, uint thread, uint time);
+
+    public const int GW_OWNER = 4;
+    public const int SW_MINIMIZE = 6, SW_RESTORE = 9;
+    public const uint WM_CLOSE = 0x10;
+    public const int DWMWA_CLOAKED = 14;
+    public const uint EVENT_SYSTEM_FOREGROUND = 0x0003;
+    public const uint EVENT_OBJECT_DESTROY = 0x8001, EVENT_OBJECT_SHOW = 0x8002, EVENT_OBJECT_HIDE = 0x8003;
+    public const uint EVENT_OBJECT_CLOAKED = 0x8017, EVENT_OBJECT_UNCLOAKED = 0x8018;
+    public const uint WINEVENT_OUTOFCONTEXT = 0, WINEVENT_SKIPOWNPROCESS = 2;
+
+    [DllImport("user32.dll")] public static extern bool EnumWindows(EnumWindowsProc callback, IntPtr lParam);
+    [DllImport("user32.dll")] public static extern bool IsWindowVisible(IntPtr hWnd);
+    [DllImport("user32.dll")] public static extern bool IsWindow(IntPtr hWnd);
+    [DllImport("user32.dll")] public static extern bool IsIconic(IntPtr hWnd);
+    [DllImport("user32.dll")] public static extern IntPtr GetWindow(IntPtr hWnd, int cmd);
+    [DllImport("user32.dll")] public static extern int GetWindowTextLength(IntPtr hWnd);
+    [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr hWnd, int cmd);
+    [DllImport("user32.dll")] public static extern bool PostMessage(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam);
+    [DllImport("dwmapi.dll")] public static extern int DwmGetWindowAttribute(IntPtr hWnd, int attribute, out int value, int size);
+    [DllImport("user32.dll")] public static extern IntPtr SetWinEventHook(uint eventMin, uint eventMax, IntPtr module, WinEventProc callback, uint processId, uint threadId, uint flags);
+    [DllImport("user32.dll")] public static extern bool UnhookWinEvent(IntPtr hook);
+    [DllImport("kernel32.dll")] public static extern IntPtr OpenProcess(uint access, bool inherit, uint processId);
+    [DllImport("kernel32.dll")] public static extern bool CloseHandle(IntPtr handle);
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode)] public static extern bool QueryFullProcessImageName(IntPtr process, uint flags, StringBuilder name, ref uint size);
+
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode)] private static extern int GetApplicationUserModelId(IntPtr process, ref uint length, StringBuilder? id);
+
+    /// <summary>Путь к exe процесса и AppUserModelID пакета (у MSIX/Store-программ, иначе null).</summary>
+    public static (string? Path, string? AppId) ProcessInfo(uint pid)
+    {
+        var handle = OpenProcess(0x1000 /* PROCESS_QUERY_LIMITED_INFORMATION */, false, pid);
+        if (handle == IntPtr.Zero) return (null, null);
+        try
+        {
+            uint size = 1024;
+            var sb = new StringBuilder((int)size);
+            string? path = QueryFullProcessImageName(handle, 0, sb, ref size) ? sb.ToString() : null;
+
+            string? appId = null;
+            uint length = 256;
+            var id = new StringBuilder((int)length);
+            if (GetApplicationUserModelId(handle, ref length, id) == 0) appId = id.ToString();
+            return (path, appId);
+        }
+        finally
+        {
+            CloseHandle(handle);
+        }
+    }
+
     public static string ClassName(IntPtr hWnd)
     {
         var sb = new StringBuilder(256);

@@ -261,6 +261,10 @@ public sealed class AppSettings : Observable
     private bool _showTrayIcon = true;
     private bool _welcomeShown;
     private bool _checkUpdates = true;
+    private bool _switchToRunning = true;
+
+    /// <summary>Клик по уже открытой программе переключает на её окно, а не запускает копию.</summary>
+    public bool SwitchToRunning { get => _switchToRunning; set => Set(ref _switchToRunning, value); }
     private DateTime? _lastUpdateCheck;
 
     public bool CheckUpdates { get => _checkUpdates; set => Set(ref _checkUpdates, value); }

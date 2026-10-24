@@ -25,6 +25,7 @@ public partial class App : Application
     public IconService Icons { get; } = new();
     public ShortcutManager Shortcuts { get; } = new();
     public UpdateManager Updates { get; private set; } = null!;
+    public RunningApps Running { get; private set; } = null!;
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -51,6 +52,7 @@ public partial class App : Application
             foreach (var g in Store.Config.Groups) g.RefreshIcon();
         };
 
+        Running = new RunningApps();
         Updates = new UpdateManager(Store.Config.Settings);
         Updates.Found += update => _editor?.ShowUpdateToast(update);
 
