@@ -112,6 +112,7 @@ public static class Native
     [DllImport("user32.dll")] public static extern uint GetDpiForWindow(IntPtr hWnd);
     [DllImport("shcore.dll")] public static extern int GetDpiForMonitor(IntPtr hMonitor, int dpiType, out uint dpiX, out uint dpiY);
     [DllImport("user32.dll")] public static extern int GetSystemMetrics(int index);
+    [DllImport("user32.dll")] public static extern int GetSystemMetricsForDpi(int index, uint dpi);
     [DllImport("user32.dll", CharSet = CharSet.Unicode)] public static extern uint RegisterWindowMessage(string message);
     [DllImport("user32.dll")] public static extern bool DestroyIcon(IntPtr hIcon);
     [DllImport("user32.dll")] public static extern IntPtr GetDC(IntPtr hWnd);

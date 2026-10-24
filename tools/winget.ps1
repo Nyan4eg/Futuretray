@@ -10,7 +10,7 @@ $root = Split-Path $PSScriptRoot -Parent
 $id = 'Nyan4eg.Futuretray'
 $repo = 'https://github.com/Nyan4eg/Futuretray'
 $url = "$repo/releases/download/v$Version/FuturetraySetup-$Version.exe"
-$schema = '1.10.0'
+$schema = '1.12.0'
 
 $tmp = Join-Path ([IO.Path]::GetTempPath()) "FuturetraySetup-$Version.exe"
 Write-Host "Скачиваю $url"

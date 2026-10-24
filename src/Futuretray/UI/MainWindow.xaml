@@ -86,7 +86,7 @@
         <!-- ================= Боковая панель ================= -->
         <Grid Grid.Column="0">
             <Grid.RowDefinitions>
-                <RowDefinition Height="48"/>
+                <RowDefinition x:Name="TitleRow" Height="32"/>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
                 <RowDefinition Height="Auto"/>
@@ -97,7 +97,7 @@
                 <TextBlock Text="Futuretray" FontSize="12" Margin="12,0,0,0" VerticalAlignment="Center"/>
             </StackPanel>
 
-            <Grid Grid.Row="1" Margin="22,4,12,6">
+            <Grid Grid.Row="1" Margin="22,12,12,6">
                 <TextBlock Text="{ui:T 'Группы'}" Style="{StaticResource Text.Strong}" VerticalAlignment="Center"/>
                 <Button Style="{StaticResource Button.Icon}" Content="&#xE710;" HorizontalAlignment="Right" Width="32" Height="32"
                         ToolTip="{ui:T 'Новая группа (Ctrl+N)'}" Click="NewGroup_Click"/>

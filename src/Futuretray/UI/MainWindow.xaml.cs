@@ -9,6 +9,7 @@ using System.Windows.Data;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
+using System.Windows.Shell;
 using System.Windows.Threading;
 using Futuretray.Core;
 using Microsoft.Win32;
@@ -31,7 +32,8 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
-        WindowEffects.InstallChrome(this, 48, 6);
+        WindowEffects.InstallChrome(this, TitleBarHeight, 6);
+        ApplyTitleBarHeight(maximized: false);
 
         GroupList.ItemsSource = Groups;
         SettingsPanel.DataContext = _app.Store.Config.Settings;
@@ -64,6 +66,7 @@ public partial class MainWindow : Window
         {
             bool max = WindowState == WindowState.Maximized;
             RootGrid.Margin = max ? new Thickness(7) : new Thickness(0);
+            ApplyTitleBarHeight(max);
             MaximizeButton.Content = max ? "" : "";
         };
         PreviewKeyDown += OnWindowKeyDown;
@@ -89,6 +92,25 @@ public partial class MainWindow : Window
         ContentLayer.SetResourceReference(Border.BackgroundProperty, backdrop ? "Brush.Layer" : "Brush.LayerSolid");
         CaptionButtons.Visibility = WindowEffects.SupportsBackdrop ? Visibility.Collapsed : Visibility.Visible;
         if (_group != null) UpdatePreviewTint();
+    }
+
+    /// <summary>
+    /// Высота системного заголовка (заголовок + рамка). Когда в Windows включён цвет акцента в заголовках,
+    /// система закрашивает ровно эту полосу — наш заголовок и начало содержимого должны совпасть с ней.
+    /// </summary>
+    private static double TitleBarHeight =>
+        // 23 (заголовок) + 4 (рамка) + 4 (SM_CXPADDEDBORDER, его WPF не учитывает) = 31 при 100%.
+        SystemParameters.WindowCaptionHeight + SystemParameters.WindowResizeBorderThickness.Top +
+        Native.GetSystemMetricsForDpi(92 /* SM_CXPADDEDBORDER */, 96);
+
+    private void ApplyTitleBarHeight(bool maximized)
+    {
+        // У развёрнутого окна рамка уходит за край экрана, и видимая полоса заголовка ниже.
+        double height = maximized ? SystemParameters.WindowCaptionHeight : TitleBarHeight;
+        TitleRow.Height = new GridLength(height);
+        ContentLayer.Margin = new Thickness(0, height, 0, 0);
+        foreach (var button in CaptionButtons.Children.OfType<Button>()) button.Height = height;
+        if (WindowChrome.GetWindowChrome(this) is { } chrome) chrome.CaptionHeight = height;
     }
 
     private void Minimize_Click(object sender, RoutedEventArgs e) => SystemCommands.MinimizeWindow(this);
