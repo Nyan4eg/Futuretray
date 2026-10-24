@@ -26,7 +26,7 @@ $iscc = @(
 if (-not $iscc) { throw 'Не найден Inno Setup 6 (ISCC.exe).' }
 
 $dist = Join-Path $root 'dist'
-& $iscc /Q "/DAppVersion=$Version" "/DSourceExe=$dist\Futuretray.exe" (Join-Path $root 'installer\Futuretray.iss')
+& $iscc /Q "/DAppVersion=$Version" "/DSourceExe=$dist\Futuretray.exe" "/DSourceLauncher=$dist\FuturetrayLauncher.exe" (Join-Path $root 'installer\Futuretray.iss')
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
 $setup = Join-Path $dist "FuturetraySetup-$Version.exe"

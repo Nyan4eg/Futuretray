@@ -140,6 +140,12 @@ public static class Updater
         var fresh = Path.Combine(dir, "Futuretray.exe");
         if (!File.Exists(fresh)) throw new InvalidDataException(Loc.T("В архиве обновления нет Futuretray.exe"));
 
+        // Запускатель живёт доли секунды, его можно просто перезаписать; не вышло — старый тоже работает.
+        var launcher = Path.Combine(dir, "FuturetrayLauncher.exe");
+        if (File.Exists(launcher))
+            try { File.Copy(launcher, Path.Combine(AppPaths.ExeDir, "FuturetrayLauncher.exe"), true); }
+            catch (Exception ex) { Log.Error(ex, "Portable launcher update"); }
+
         var exe = AppPaths.ExePath;
         if (File.Exists(OldExePath)) File.Delete(OldExePath);
         File.Move(exe, OldExePath);

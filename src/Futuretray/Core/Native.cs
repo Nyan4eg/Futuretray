@@ -201,6 +201,37 @@ public static class Native
     /// <summary>Программа не отвечает (не разбирает сообщения 5+ секунд) — синхронные вызовы к её окну повиснут.</summary>
     [DllImport("user32.dll")] public static extern bool IsHungAppWindow(IntPtr hWnd);
 
+    [StructLayout(LayoutKind.Sequential)]
+    public struct WINDOWPLACEMENT
+    {
+        public int Length;
+        public int Flags;
+        public int ShowCmd;
+        public POINT MinPosition;
+        public POINT MaxPosition;
+        public RECT NormalPosition;
+    }
+
+    [DllImport("user32.dll")] public static extern bool GetWindowPlacement(IntPtr hWnd, ref WINDOWPLACEMENT placement);
+
+    /// <summary>
+    /// Обычный (не развёрнутый) прямоугольник окна в экранных координатах — с невидимыми рамками.
+    /// Windows хранит его в «координатах рабочей области»: они сдвинуты на панели задач слева и сверху.
+    /// </summary>
+    public static RECT? NormalBounds(IntPtr hwnd, RECT monitor, RECT work)
+    {
+        var placement = new WINDOWPLACEMENT { Length = Marshal.SizeOf<WINDOWPLACEMENT>() };
+        if (!GetWindowPlacement(hwnd, ref placement)) return null;
+        return WorkspaceToScreen(placement.NormalPosition, monitor, work);
+    }
+
+    /// <summary>Координаты рабочей области → экранные: сдвиг на панель задач слева или сверху.</summary>
+    public static RECT WorkspaceToScreen(RECT r, RECT monitor, RECT work)
+    {
+        int dx = work.Left - monitor.Left, dy = work.Top - monitor.Top;
+        return new RECT { Left = r.Left + dx, Top = r.Top + dy, Right = r.Right + dx, Bottom = r.Bottom + dy };
+    }
+
     [DllImport("kernel32.dll")] private static extern bool SetProcessWorkingSetSize(IntPtr process, IntPtr min, IntPtr max);
 
     /// <summary>

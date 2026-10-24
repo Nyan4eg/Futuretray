@@ -57,6 +57,12 @@ public sealed class WindowLayout
     public double Height { get; set; }
     public bool Maximized { get; set; }
 
+    /// <summary>
+    /// Прямоугольник — внешний, вместе с невидимыми рамками: так Windows отдаёт обычный размер
+    /// развёрнутого окна, и именно его мы возвращаем, чтобы «Свернуть в окно» работало как раньше.
+    /// </summary>
+    public bool Outer { get; set; }
+
     public WindowLayout Clone() => (WindowLayout)MemberwiseClone();
 }
 

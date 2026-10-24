@@ -16,6 +16,13 @@ public sealed class ShortcutManager
     public static string IconsDir => Path.Combine(ConfigStore.DataDir, "Icons");
     public static string ExePath => AppPaths.ExePath;
 
+    /// <summary>
+    /// Что запускают значки групп и пункты списка переходов: крошечный нативный FuturetrayLauncher.exe
+    /// рядом с программой (передаёт команду работающему Futuretray втрое быстрее), а без него — сам Futuretray.
+    /// </summary>
+    public static string LauncherPath =>
+        Path.Combine(AppPaths.ExeDir, "FuturetrayLauncher.exe") is var launcher && File.Exists(launcher) ? launcher : ExePath;
+
     private static string PinnedDir => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
         @"Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar");
     private static string StartMenuDir => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Programs), "Futuretray");
@@ -78,8 +85,8 @@ public sealed class ShortcutManager
                 var info = ShellLink.Read(file);
                 if (info == null || !IsGroupArgs(info.Arguments, g.Id)) continue;
                 if (string.Equals(info.IconPath, icon, StringComparison.OrdinalIgnoreCase) &&
-                    string.Equals(info.Target, ExePath, StringComparison.OrdinalIgnoreCase)) continue;
-                if (ShellLink.Update(file, ExePath, Path.GetDirectoryName(ExePath), icon, AppUserModelId(g)))
+                    string.Equals(info.Target, LauncherPath, StringComparison.OrdinalIgnoreCase)) continue;
+                if (ShellLink.Update(file, LauncherPath, AppPaths.ExeDir, icon, AppUserModelId(g)))
                 {
                     Native.NotifyPathUpdated(file);
                     pinnedChanged = true;
@@ -162,7 +169,7 @@ public sealed class ShortcutManager
     }
 
     private void Write(string path, Group g, string icon) =>
-        ShellLink.Save(path, ExePath, GroupArguments(g), Path.GetDirectoryName(ExePath), icon,
+        ShellLink.Save(path, LauncherPath, GroupArguments(g), AppPaths.ExeDir, icon,
             $"Futuretray: {g.Name}", AppUserModelId(g));
 
     private string EnsureIcon(Group g)

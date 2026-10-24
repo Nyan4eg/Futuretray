@@ -198,3 +198,20 @@ public class WorkspaceTests
         Assert.Equal(c, HostCommand.Deserialize(c.Serialize()));
     }
 }
+
+public class WindowPlacementTests
+{
+    private static Native.RECT R(int l, int t, int r, int b) => new() { Left = l, Top = t, Right = r, Bottom = b };
+
+    [Fact]
+    public void BottomTaskbar_NoShift() =>
+        Assert.Equal(R(100, 50, 800, 550), Native.WorkspaceToScreen(R(100, 50, 800, 550), R(0, 0, 1920, 1080), R(0, 0, 1920, 1032)));
+
+    [Fact]
+    public void LeftTaskbar_ShiftsRight() =>
+        Assert.Equal(R(148, 50, 848, 550), Native.WorkspaceToScreen(R(100, 50, 800, 550), R(0, 0, 1920, 1080), R(48, 0, 1920, 1080)));
+
+    [Fact]
+    public void TopTaskbarOnSecondMonitor_ShiftsDown() =>
+        Assert.Equal(R(2020, 98, 2720, 598), Native.WorkspaceToScreen(R(2020, 50, 2720, 550), R(1920, 0, 3840, 1080), R(1920, 48, 3840, 1080)));
+}

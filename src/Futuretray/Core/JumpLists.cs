@@ -25,7 +25,8 @@ internal static class JumpLists
             var iid = typeof(IObjectArray).GUID;
             list.BeginList(out _, ref iid, out _);
 
-            var exe = ShortcutManager.ExePath;
+            var exe = ShortcutManager.LauncherPath;
+            var appIcon = ShortcutManager.ExePath;
             var tasks = (IObjectCollection)new CEnumerableObjectCollection();
             foreach (var item in group.Items.Take(MaxItems))
                 tasks.AddObject(ShellLink.CreateTask(exe, $"--launch {group.Id} {item.Id}", item.Name, ItemIcon(item), item.KindLabel));
@@ -33,11 +34,11 @@ internal static class JumpLists
             if (group.Items.Count > 0)
             {
                 tasks.AddObject(ShellLink.CreateTask(exe, $"--arrange {group.Id}",
-                    group.HasLayout ? Loc.T("Открыть все и разложить окна") : Loc.T("Открыть все"), exe, null));
-                tasks.AddObject(ShellLink.CreateTask(exe, $"--focus {group.Id}", Loc.T("Свернуть остальное"), exe, null));
-                tasks.AddObject(ShellLink.CreateTask(exe, $"--close {group.Id}", Loc.T("Закрыть все программы группы"), exe, null));
+                    group.HasLayout ? Loc.T("Открыть все и разложить окна") : Loc.T("Открыть все"), appIcon, null));
+                tasks.AddObject(ShellLink.CreateTask(exe, $"--focus {group.Id}", Loc.T("Свернуть остальное"), appIcon, null));
+                tasks.AddObject(ShellLink.CreateTask(exe, $"--close {group.Id}", Loc.T("Закрыть все программы группы"), appIcon, null));
             }
-            tasks.AddObject(ShellLink.CreateTask(exe, $"--editor {group.Id}", Loc.T("Изменить группу…"), exe, null));
+            tasks.AddObject(ShellLink.CreateTask(exe, $"--editor {group.Id}", Loc.T("Изменить группу…"), appIcon, null));
 
             list.AddUserTasks((IObjectArray)tasks);
             list.CommitList();

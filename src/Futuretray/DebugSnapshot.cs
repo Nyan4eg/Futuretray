@@ -263,6 +263,36 @@ internal static class DebugSnapshot
         await OpenAllAndWait(300);
         sb.AppendLine($"maximized-ok: {running.WindowsFor(group.Items[0]).Count(Native.IsZoomed) == 1}");
 
+        // 5б. Развёрнутое окно помнит обычный размер: «Свернуть в окно» после раскладки возвращает его.
+        foreach (var w in running.WindowsFor(group.Items[0])) Native.ShowWindow(w, Native.SW_RESTORE);
+        await Task.Delay(400);
+        running.Refresh();
+        var single = new Group { Name = "max" };
+        single.Items.Add(group.Items[0].Clone());
+        var wA = running.WindowsFor(single.Items[0]).First();
+        Native.SetWindowPos(wA, IntPtr.Zero, work.Left + 120, work.Top + 90, 700, 500, Native.SWP_NOZORDER | Native.SWP_NOACTIVATE);
+        await Task.Delay(300);
+        var normalBefore = Native.VisibleBounds(wA);
+        Native.ShowWindow(wA, Native.SW_MAXIMIZE);
+        await Task.Delay(500);
+        running.Refresh();
+        Workspaces.Capture(single);
+        var savedMax = single.Items[0].Layouts?.GetValueOrDefault(profile);
+        Native.ShowWindow(wA, Native.SW_RESTORE);
+        Native.SetWindowPos(wA, IntPtr.Zero, work.Left + 400, work.Top + 300, 300, 200, Native.SWP_NOZORDER | Native.SWP_NOACTIVATE);
+        await Task.Delay(300);
+        var t5 = new TaskCompletionSource<Workspaces.ArrangeResult>();
+        Workspaces.OpenAll(single, r => t5.TrySetResult(r));
+        await t5.Task;
+        await Task.Delay(500);
+        bool zoomedAgain = Native.IsZoomed(wA);
+        Native.ShowWindow(wA, Native.SW_RESTORE);
+        await Task.Delay(500);
+        var normalAfter = Native.VisibleBounds(wA);
+        bool close(int a, int b) => Math.Abs(a - b) <= 2;
+        sb.AppendLine($"max-normal: saved outer={savedMax?.Outer} max={savedMax?.Maximized}; before {normalBefore.Left},{normalBefore.Top},{normalBefore.Width}x{normalBefore.Height} after {normalAfter.Left},{normalAfter.Top},{normalAfter.Width}x{normalAfter.Height}");
+        sb.AppendLine($"max-normal-ok: {savedMax?.Outer == true && zoomedAgain && close(normalBefore.Left, normalAfter.Left) && close(normalBefore.Top, normalAfter.Top) && close(normalBefore.Width, normalAfter.Width) && close(normalBefore.Height, normalAfter.Height)}");
+
         // 6. Забыть только эти мониторы.
         SetLayouts(profile);
         group.Items[0].Layouts = new(group.Items[0].Layouts!) { ["1280x720@0,0*"] = new WindowLayout() };

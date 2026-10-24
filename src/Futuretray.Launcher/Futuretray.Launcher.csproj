@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Крошечный нативный запускатель для значков групп на панели задач. Собирается NativeAOT:
+    стартует за миллисекунды, без среды .NET и WPF, и передаёт команду уже работающему Futuretray.
+    Протокол команд — те же исходники, что у основной программы (Ipc.cs), чтобы они не разошлись.
+  -->
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net9.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <RootNamespace>Futuretray.Launcher</RootNamespace>
+    <AssemblyName>FuturetrayLauncher</AssemblyName>
+    <ApplicationIcon>..\Futuretray\Assets\app.ico</ApplicationIcon>
+    <Product>Futuretray</Product>
+    <Description>Futuretray — быстрый запуск групп</Description>
+    <PublishAot>true</PublishAot>
+    <OptimizationPreference>Speed</OptimizationPreference>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <UseSystemResourceKeys>true</UseSystemResourceKeys>
+    <StackTraceSupport>false</StackTraceSupport>
+    <NoWarn>$(NoWarn);CA1416</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\Futuretray\Core\Ipc.cs" Link="Shared\Ipc.cs" />
+    <Compile Include="..\Futuretray\Core\AppPaths.cs" Link="Shared\AppPaths.cs" />
+    <Compile Include="..\Futuretray\Core\Log.cs" Link="Shared\Log.cs" />
+  </ItemGroup>
+
+</Project>

@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.11.0
+
+- **Groups open faster**: group icons and jump list items now start a tiny native FuturetrayLauncher.exe
+  that hands the command to the running Futuretray without starting the .NET runtime. About 60 ms from
+  click to command instead of 160. Icons that are already pinned switch over by themselves.
+- **Maximized windows remember their normal size**: if a window was maximized on “Remember layout”, it is
+  maximized again after “Arrange”, and “Restore down” brings back its previous size instead of leaving it
+  full-screen.
+
 ## 1.10.1
 
 - **More reliable sync**: if the folder is unavailable at startup (OneDrive not running yet, the file not

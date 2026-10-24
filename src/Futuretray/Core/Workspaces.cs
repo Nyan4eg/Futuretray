@@ -167,7 +167,12 @@ public static class Workspaces
                 claimed.Add(window);
                 var handle = Native.MonitorFromWindow(window, Native.MONITOR_DEFAULTTONEAREST);
                 var monitor = monitors.FirstOrDefault(m => m.Handle == handle) ?? Monitors.Find(null);
-                var layout = ToLayout(Native.VisibleBounds(window), monitor.Work, monitor.IsPrimary ? null : monitor.Device, Native.IsZoomed(window));
+                bool zoomed = Native.IsZoomed(window);
+                // У развёрнутого окна запоминаем его обычный размер: развёрнутость сохранится флагом,
+                // а «Свернуть в окно» после раскладки вернёт окно к прежнему размеру, а не на весь экран.
+                var normal = zoomed ? Native.NormalBounds(window, monitor.Bounds, monitor.Work) : null;
+                var layout = ToLayout(normal ?? Native.VisibleBounds(window), monitor.Work, monitor.IsPrimary ? null : monitor.Device, zoomed);
+                layout.Outer = normal != null;
                 layout.Screen = Bounds(monitor.Bounds);
                 layout.Captured = now;
                 found[item] = layout;
@@ -304,10 +309,16 @@ public static class Workspaces
         if (Native.IsIconic(window) || Native.IsZoomed(window)) Native.ShowWindow(window, Native.SW_SHOWNOACTIVATE);
 
         // Видимая граница и прямоугольник окна различаются на невидимые рамки — учитываем их.
-        Native.GetWindowRect(window, out var outer);
-        var visible = Native.VisibleBounds(window);
-        int left = visible.Left - outer.Left, top = visible.Top - outer.Top;
-        int right = outer.Right - visible.Right, bottom = outer.Bottom - visible.Bottom;
+        int left = 0, top = 0, right = 0, bottom = 0;
+        if (!layout.Outer)
+        {
+            Native.GetWindowRect(window, out var outer);
+            var visible = Native.VisibleBounds(window);
+            left = visible.Left - outer.Left;
+            top = visible.Top - outer.Top;
+            right = outer.Right - visible.Right;
+            bottom = outer.Bottom - visible.Bottom;
+        }
 
         bool ok = Native.SetWindowPos(window, IntPtr.Zero,
             target.Left - left, target.Top - top,

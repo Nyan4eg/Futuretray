@@ -10,6 +10,9 @@
 #ifndef SourceExe
   #define SourceExe "..\dist\Futuretray.exe"
 #endif
+#ifndef SourceLauncher
+  #define SourceLauncher "..\dist\FuturetrayLauncher.exe"
+#endif
 
 [Setup]
 AppId={{6F1E3C2A-8B7D-4E59-9C3A-2D5F8A1B7E44}
@@ -58,6 +61,8 @@ Name: "desktopicon"; Description: "{cm:DesktopIcon}"; Flags: unchecked
 
 [Files]
 Source: "{#SourceExe}"; DestDir: "{app}"; Flags: ignoreversion
+; Быстрый запуск значков групп: передаёт команду работающему Futuretray без запуска .NET.
+Source: "{#SourceLauncher}"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
 Name: "{userprograms}\{#AppName}"; Filename: "{app}\Futuretray.exe"; AppUserModelID: "Futuretray.App"
