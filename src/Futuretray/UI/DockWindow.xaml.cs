@@ -59,6 +59,11 @@ public partial class DockWindow : Window
         });
 
         Tiles.TilesFocusable = false;
+        Tiles.AcceptFileDrop = true;
+        Tiles.FilesDropped += (item, files) =>
+        {
+            if (Launcher.OpenWith(item, files) is { } error) ShowError(error);
+        };
         Tiles.Bind(group);
         Tiles.ItemInvoked += (item, _, newInstance) => Launch(item, newInstance);
         Tiles.ItemMenuRequested += OnItemMenu;
@@ -532,7 +537,11 @@ public partial class DockWindow : Window
 
     private void Launch(LaunchItem item, bool newInstance = false)
     {
-        if (Launcher.Open(item, newInstance) is not { } error) return;
+        if (Launcher.Open(item, newInstance) is { } error) ShowError(error);
+    }
+
+    private void ShowError(string error)
+    {
         var tip = new ToolTip { Content = error, PlacementTarget = Root, Placement = PlacementMode.Mouse, StaysOpen = false };
         if (_theme != null) tip.Resources.MergedDictionaries.Add(_theme);
         tip.IsOpen = true;

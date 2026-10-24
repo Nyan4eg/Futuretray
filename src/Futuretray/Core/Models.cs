@@ -58,8 +58,14 @@ public sealed class LaunchItem : Observable
 
     [JsonIgnore] public ImageSource? Icon => IconService.Current?.Get(this, IconService.TilePx);
 
-    /// <summary>Ключ, по которому кэшируется иконка элемента.</summary>
-    [JsonIgnore] public string IconKey => $"{Kind}|{Target}|{CustomIconPath}";
+    /// <summary>Ключ, по которому кэшируется иконка элемента (для ссылок — с учётом скачанного значка сайта).</summary>
+    [JsonIgnore]
+    public string IconKey => Kind == ItemKind.Url
+        ? $"{Kind}|{Target}|{CustomIconPath}|{Favicons.Stamp(Target)}"
+        : $"{Kind}|{Target}|{CustomIconPath}";
+
+    /// <summary>Иконка могла измениться снаружи (например, скачался значок сайта).</summary>
+    public void RefreshIcon() => IconInputsChanged();
 
     [JsonIgnore]
     public string KindLabel => Kind switch
@@ -124,6 +130,8 @@ public sealed class Group : Observable
     private bool _dockReserveSpace;
     private int? _dockX;
     private int? _dockY;
+    private string? _hotkey;
+    private string? _sourceFolder;
 
     public Group()
     {
@@ -196,6 +204,15 @@ public sealed class Group : Observable
     public int? DockX { get => _dockX; set => Set(ref _dockX, value); }
     public int? DockY { get => _dockY; set => Set(ref _dockY, value); }
 
+    /// <summary>Глобальное сочетание клавиш, открывающее группу у курсора (например, "Ctrl+Alt+1").</summary>
+    public string? Hotkey { get => _hotkey; set => Set(ref _hotkey, string.IsNullOrWhiteSpace(value) ? null : value); }
+
+    /// <summary>Папка, содержимое которой группа подхватывает сама. null — обычная группа.</summary>
+    public string? SourceFolder { get => _sourceFolder; set => Set(ref _sourceFolder, string.IsNullOrWhiteSpace(value) ? null : value); }
+
+    /// <summary>Сообщить подписчикам, что вид группы изменился (например, у элемента появилась новая иконка).</summary>
+    public void Touch() => Changed?.Invoke(this, EventArgs.Empty);
+
     [JsonIgnore] public ImageSource? Icon => GroupIconRenderer.Get(this, 96);
 
     public void RefreshIcon() => OnPropertyChanged(nameof(Icon));
@@ -262,6 +279,14 @@ public sealed class AppSettings : Observable
     private bool _welcomeShown;
     private bool _checkUpdates = true;
     private bool _switchToRunning = true;
+    private string? _searchHotkey = "Win+Alt+Space";
+    private bool _downloadFavicons = true;
+
+    /// <summary>Сочетание для поиска по всем группам; null — выключено.</summary>
+    public string? SearchHotkey { get => _searchHotkey; set => Set(ref _searchHotkey, string.IsNullOrWhiteSpace(value) ? null : value); }
+
+    /// <summary>Скачивать значки сайтов для ссылок (обращение к самому сайту).</summary>
+    public bool DownloadFavicons { get => _downloadFavicons; set => Set(ref _downloadFavicons, value); }
 
     /// <summary>Клик по уже открытой программе переключает на её окно, а не запускает копию.</summary>
     public bool SwitchToRunning { get => _switchToRunning; set => Set(ref _switchToRunning, value); }

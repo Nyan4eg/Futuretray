@@ -51,18 +51,20 @@ internal static class DebugSnapshot
 
         int i = 0;
         var timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(900) };
-        timer.Tick += (_, _) =>
+        timer.Tick += async (_, _) =>
         {
             try
             {
                 if (i > 0) Save(editor!, Path.Combine(dir, $"{i:00}-{steps[i - 1].name}.png"));
                 if (i == steps.Count)
                 {
+                    timer.Stop();
                     SaveRunning(app, dir);
+                    await CheckFeaturesAsync(app, dir);
                     SavePopup(app, dir);
                     SaveDocks(app, dir);
+                    SaveSearch(dir);
                     DiagnosticsReport.Create(app.Store, dir);
-                    timer.Stop();
                     app.Shutdown();
                     return;
                 }
@@ -96,6 +98,81 @@ internal static class DebugSnapshot
             Save(popup, Path.Combine(dir, $"popup-{idx}.png"));
             popup.Close();
         }
+    }
+
+    /// <summary>Импорт из taskbar-groups, группа-папка и значок сайта — результаты в features.txt.</summary>
+    private static async Task CheckFeaturesAsync(App app, string dir)
+    {
+        var sb = new System.Text.StringBuilder();
+
+        // --- импорт taskbar-groups на образце их формата ---
+        var tbg = Path.Combine(dir, "tbg", "config", "wow");
+        System.IO.Directory.CreateDirectory(tbg);
+        File.WriteAllText(Path.Combine(tbg, "ObjectData.xml"), $"""
+            <?xml version="1.0" encoding="utf-8"?>
+            <Category xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+              <Name>wow</Name>
+              <ColorString>#1F1F1F</ColorString>
+              <allowOpenAll>false</allowOpenAll>
+              <ShortcutList>
+                <ProgramShortcut>
+                  <Arguments>--test</Arguments>
+                  <WorkingDirectory>{Path.Combine(dir, "tbg")}\client.exe</WorkingDirectory>
+                  <FilePath>{Path.Combine(Environment.SystemDirectory, "notepad.exe")}</FilePath>
+                  <isWindowsApp>false</isWindowsApp>
+                  <name>Мой блокнот</name>
+                </ProgramShortcut>
+                <ProgramShortcut>
+                  <Arguments />
+                  <FilePath>Microsoft.WindowsCalculator_8wekyb3d8bbwe!App</FilePath>
+                  <isWindowsApp>true</isWindowsApp>
+                  <name>Calculator</name>
+                </ProgramShortcut>
+              </ShortcutList>
+              <Width>5</Width>
+              <Opacity>10</Opacity>
+            </Category>
+            """);
+        File.Copy(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "Assets", "logo.png"), Path.Combine(tbg, "GroupImage.png"), true);
+        foreach (var g in TaskbarGroupsImport.Load(Path.Combine(dir, "tbg")))
+        {
+            sb.AppendLine($"import: «{g.Name}» color={g.Color} columns={g.Columns} icon={g.IconMode} custom={File.Exists(g.CustomIconPath)}");
+            foreach (var i in g.Items) sb.AppendLine($"    {i.Kind} {i.Name} → {i.Target} args={i.Arguments} wd={i.WorkingDirectory}");
+        }
+
+        // --- группа-папка ---
+        var folder = Path.Combine(dir, "watched");
+        System.IO.Directory.CreateDirectory(Path.Combine(folder, "Подпапка"));
+        File.WriteAllText(Path.Combine(folder, "первый.txt"), "1");
+        File.WriteAllText(Path.Combine(folder, "desktop.ini"), "");
+        var folderGroup = new Group { Name = "Папка" };
+        folderGroup.Items.Add(ItemFactory.FromUrl("https://example.com"));
+        app.Store.Config.Groups.Add(folderGroup);
+        var sync = new FolderSync(app.Store);
+        folderGroup.SourceFolder = folder;
+        sb.AppendLine("folder after link: " + string.Join(", ", folderGroup.Items.Select(i => i.Name)));
+        File.WriteAllText(Path.Combine(folder, "второй.txt"), "2");
+        File.Delete(Path.Combine(folder, "первый.txt"));
+        await Task.Delay(2000);
+        sb.AppendLine("folder after add/delete: " + string.Join(", ", folderGroup.Items.Select(i => i.Name)));
+
+        // --- значок сайта ---
+        var github = app.Store.Config.Groups[0].Items.First(i => i.Kind == ItemKind.Url);
+        _ = github.Icon;
+        for (int t = 0; t < 20 && Favicons.Stamp(github.Target) == ""; t++) await Task.Delay(500);
+        sb.AppendLine($"favicon github.com: {(Favicons.Stamp(github.Target) == "" ? "нет" : "скачан")}");
+
+        File.WriteAllText(Path.Combine(dir, "features.txt"), sb.ToString());
+    }
+
+    private static void SaveSearch(string dir)
+    {
+        var search = new SearchWindow();
+        search.ShowNearCursor();
+        search.Query.Text = "о";
+        search.UpdateLayout();
+        Save(search, Path.Combine(dir, "search.png"));
+        search.Close();
     }
 
     /// <summary>Какие окна видит трекер и какие элементы групп он считает запущенными.</summary>

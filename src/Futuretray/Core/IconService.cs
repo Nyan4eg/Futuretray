@@ -88,7 +88,7 @@ public sealed class IconService
             var image = item.Kind switch
             {
                 ItemKind.ShellApp => Shell(@"shell:AppsFolder\" + item.Target, px),
-                ItemKind.Url => BrowserIcon(px),
+                ItemKind.Url => Favicons.TryGet(item.Target, px) ?? BrowserIcon(px),
                 _ => Shell(Environment.ExpandEnvironmentVariables(item.Target), px),
             };
             if (image != null) return image;

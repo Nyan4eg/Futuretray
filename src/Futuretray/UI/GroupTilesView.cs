@@ -40,6 +40,11 @@ public sealed class GroupTilesView : ContentControl
     public Dock IndicatorSide { get; set; } = Dock.Bottom;
     public event Action<LaunchItem, Button>? ItemMenuRequested;
 
+    /// <summary>Принимать файлы, перетащенные на плитку программы (в трее).</summary>
+    public bool AcceptFileDrop { get; set; }
+
+    public event Action<LaunchItem, string[]>? FilesDropped;
+
     public IReadOnlyList<Button> Tiles => _tiles;
 
     public void Bind(Group group)
@@ -224,7 +229,41 @@ public sealed class GroupTilesView : ContentControl
             e.Handled = true;
             ItemMenuRequested?.Invoke(item, tile);
         };
+        if (AcceptFileDrop && Launcher.FileHandler(item) != null) EnableFileDrop(tile, item);
         return tile;
+    }
+
+    /// <summary>Файл, брошенный на значок программы, открывается этой программой.</summary>
+    private void EnableFileDrop(Button tile, LaunchItem item)
+    {
+        tile.AllowDrop = true;
+        tile.ToolTip = $"{item.Name} — можно перетащить сюда файлы, чтобы открыть их в этой программе";
+
+        void Highlight(bool on)
+        {
+            if (on) tile.SetResourceReference(BackgroundProperty, "Brush.AccentSubtle");
+            else tile.ClearValue(BackgroundProperty);
+        }
+
+        tile.DragEnter += (_, e) =>
+        {
+            bool files = e.Data.GetDataPresent(DataFormats.FileDrop);
+            e.Effects = files ? DragDropEffects.Copy : DragDropEffects.None;
+            Highlight(files);
+            e.Handled = true;
+        };
+        tile.DragOver += (_, e) =>
+        {
+            e.Effects = e.Data.GetDataPresent(DataFormats.FileDrop) ? DragDropEffects.Copy : DragDropEffects.None;
+            e.Handled = true;
+        };
+        tile.DragLeave += (_, _) => Highlight(false);
+        tile.Drop += (_, e) =>
+        {
+            Highlight(false);
+            e.Handled = true;
+            if (e.Data.GetData(DataFormats.FileDrop) is string[] { Length: > 0 } files) FilesDropped?.Invoke(item, files);
+        };
     }
 
     private static void AutomationName(DependencyObject o, string name) =>

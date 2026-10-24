@@ -44,10 +44,13 @@ public partial class MainWindow : Window
 
         Groups.CollectionChanged += OnGroupsChanged;
         ThemeManager.Changed += ApplyEffects;
+        _app.Hotkeys.FailuresChanged += UpdateHotkeyErrors;
+        Loaded += (_, _) => UpdateHotkeyErrors();
         Closed += (_, _) =>
         {
             Groups.CollectionChanged -= OnGroupsChanged;
             ThemeManager.Changed -= ApplyEffects;
+            _app.Hotkeys.FailuresChanged -= UpdateHotkeyErrors;
             _pinWatch?.Stop();
             FlushToast();
             BindGroup(null);
@@ -169,6 +172,7 @@ public partial class MainWindow : Window
         UpdateIconPanels();
         UpdatePreviewTint();
         BuildMonitorChoices();
+        UpdateHotkeyErrors();
     }
 
     private void BuildMonitorChoices()
@@ -277,6 +281,9 @@ public partial class MainWindow : Window
         var group = _group;
         var menu = new ContextMenu { PlacementTarget = (UIElement)sender, Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom };
         menu.Items.Add(App.MenuItem("", "Дублировать", () => DuplicateGroup(group)));
+        menu.Items.Add(group.SourceFolder == null
+            ? App.MenuItem("", "Синхронизировать с папкой…", () => LinkFolder(group))
+            : App.MenuItem("", "Отвязать от папки", () => group.SourceFolder = null));
         menu.Items.Add(App.MenuItem("", "Показать ярлык в Проводнике", () => _app.Shortcuts.Reveal(group)));
         menu.Items.Add(App.MenuItem("", "Добавить в меню «Пуск»", () => AddToStart(group)));
         menu.Items.Add(App.MenuItem("", "Ярлык на рабочем столе", () =>
@@ -289,6 +296,72 @@ public partial class MainWindow : Window
         delete.SetResourceReference(ForegroundProperty, "Brush.Danger");
         menu.Items.Add(delete);
         menu.IsOpen = true;
+    }
+
+    private void LinkFolder(Group group)
+    {
+        var dialog = new OpenFolderDialog { Title = "Папка, за которой будет следить группа" };
+        if (dialog.ShowDialog(this) != true) return;
+        group.SourceFolder = dialog.FolderName;
+        if (group.Items.Count == 0 || group.Name.StartsWith("Новая группа", StringComparison.CurrentCulture))
+            group.Name = Path.GetFileName(dialog.FolderName.TrimEnd('\\'));
+        ShowToast("Группа синхронизирована с папкой: всё новое в ней появится здесь само");
+    }
+
+    private void OpenSourceFolder_Click(object sender, RoutedEventArgs e)
+    {
+        if (_group?.SourceFolder is { } folder) Launcher.OpenFolder(folder);
+    }
+
+    private void UnlinkFolder_Click(object sender, RoutedEventArgs e)
+    {
+        if (_group == null) return;
+        _group.SourceFolder = null;
+        ShowToast("Группа больше не следит за папкой — уже добавленные элементы остались");
+    }
+
+    private void ImportTaskbarGroups_Click(object sender, RoutedEventArgs e)
+    {
+        var dialog = new OpenFolderDialog
+        {
+            Title = "Папка программы Taskbar Groups (где лежат config и Shortcuts)",
+            InitialDirectory = TaskbarGroupsImport.GuessFolder() ?? Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory),
+        };
+        if (dialog.ShowDialog(this) != true) return;
+        try
+        {
+            var groups = TaskbarGroupsImport.Load(dialog.FolderName);
+            if (groups.Count == 0)
+            {
+                ShowToast("Группы Taskbar Groups не найдены — выберите папку, где лежит config");
+                return;
+            }
+            foreach (var g in groups)
+            {
+                g.Name = UniqueName(g.Name);
+                Groups.Add(g);
+            }
+            GroupList.SelectedItem = groups[0];
+            ShowToast($"Перенесено групп: {groups.Count}. Закрепите их на панели задач заново — старые значки Taskbar Groups можно открепить");
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "taskbar-groups import");
+            ShowToast("Не удалось прочитать группы: " + ex.Message);
+        }
+    }
+
+    private void UpdateHotkeyErrors()
+    {
+        var failures = _app.Hotkeys.Failures;
+        SetError(SearchHotkeyError, failures.GetValueOrDefault("search"));
+        SetError(GroupHotkeyError, _group == null ? null : failures.GetValueOrDefault(_group.Id));
+
+        static void SetError(TextBlock block, string? text)
+        {
+            block.Text = text ?? "";
+            block.Visibility = text == null ? Visibility.Collapsed : Visibility.Visible;
+        }
     }
 
     private void DuplicateGroup(Group group)

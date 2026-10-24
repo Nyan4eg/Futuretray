@@ -16,6 +16,44 @@ public static class Launcher
         return Launch(item);
     }
 
+    /// <summary>Exe, которому можно передать файлы (перетаскивание на плитку). null — нельзя.</summary>
+    public static (string Exe, string? Arguments)? FileHandler(LaunchItem item)
+    {
+        if (item.Kind != ItemKind.Path) return null;
+        var target = Environment.ExpandEnvironmentVariables(item.Target);
+        if (target.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) && File.Exists(target)) return (target, item.Arguments);
+        if (target.EndsWith(".lnk", StringComparison.OrdinalIgnoreCase) && ShellLink.Read(target) is { } link)
+        {
+            var exe = Environment.ExpandEnvironmentVariables(link.Target);
+            if (exe.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) && File.Exists(exe))
+                return (exe, string.IsNullOrWhiteSpace(link.Arguments) ? null : link.Arguments);
+        }
+        return null;
+    }
+
+    /// <summary>Открыть файлы программой из группы (как перетаскивание файла на её значок).</summary>
+    public static string? OpenWith(LaunchItem item, IReadOnlyList<string> files)
+    {
+        if (FileHandler(item) is not { } handler) return "Эта программа не умеет открывать файлы";
+        try
+        {
+            Native.AllowSetForegroundWindow(Native.ASFW_ANY);
+            var args = string.Join(" ", files.Select(f => $"\"{f}\""));
+            if (handler.Arguments != null) args = handler.Arguments + " " + args;
+            Process.Start(new ProcessStartInfo(handler.Exe, args)
+            {
+                UseShellExecute = true,
+                WorkingDirectory = Path.GetDirectoryName(handler.Exe) ?? "",
+            })?.Dispose();
+            return null;
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Open with " + item.Target);
+            return ex.Message;
+        }
+    }
+
     /// <returns>null при успехе, иначе текст ошибки для пользователя.</returns>
     public static string? Launch(LaunchItem item, bool forceAdmin = false)
     {

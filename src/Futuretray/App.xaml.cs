@@ -17,6 +17,8 @@ public partial class App : Application
     private MainWindow? _editor;
     private TrayIcon? _tray;
     private DockManager? _docks;
+    private SearchWindow? _search;
+    private bool _hotkeysQueued;
 
     public static App Host => (App)Current;
 
@@ -26,6 +28,8 @@ public partial class App : Application
     public ShortcutManager Shortcuts { get; } = new();
     public UpdateManager Updates { get; private set; } = null!;
     public RunningApps Running { get; private set; } = null!;
+    public HotkeyManager Hotkeys { get; private set; } = null!;
+    public FolderSync Folders { get; private set; } = null!;
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -53,6 +57,9 @@ public partial class App : Application
         };
 
         Running = new RunningApps();
+        Hotkeys = new HotkeyManager();
+        Favicons.Enabled = () => Store.Config.Settings.DownloadFavicons;
+        Favicons.Ready += OnFaviconReady;
         Updates = new UpdateManager(Store.Config.Settings);
         Updates.Found += update => _editor?.ShowUpdateToast(update);
 
@@ -74,6 +81,10 @@ public partial class App : Application
         UpdateTray();
         _docks = new DockManager(Store);
         _docks.SyncAll();
+        Folders = new FolderSync(Store);
+        Store.GroupChanged += _ => QueueHotkeys();
+        Store.Config.Groups.CollectionChanged += (_, _) => QueueHotkeys();
+        ApplyHotkeys();
         Handle(Initial);
         Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, AfterStartup);
     }
@@ -99,6 +110,7 @@ public partial class App : Application
         Store.SaveNow();
         _docks?.CloseAll();
         _tray?.Dispose();
+        Hotkeys?.Dispose();
         base.OnExit(e);
     }
 
@@ -175,6 +187,50 @@ public partial class App : Application
         if (message != null) _editor.ShowToast(message);
     }
 
+    public void ShowSearch()
+    {
+        _search ??= new SearchWindow();
+        if (_search.IsVisible) _search.Hide();
+        else _search.ShowNearCursor();
+    }
+
+    private void QueueHotkeys()
+    {
+        if (_hotkeysQueued) return;
+        _hotkeysQueued = true;
+        Dispatcher.BeginInvoke(() =>
+        {
+            _hotkeysQueued = false;
+            ApplyHotkeys();
+        }, DispatcherPriority.Background);
+    }
+
+    private void ApplyHotkeys()
+    {
+        var bindings = new List<(string, string?, Action)> { ("search", Store.Config.Settings.SearchHotkey, ShowSearch) };
+        foreach (var g in Store.Config.Groups)
+        {
+            var id = g.Id;
+            bindings.Add((id, g.Hotkey, () =>
+            {
+                Native.GetCursorPos(out var cursor);
+                ShowPopup(id, cursor);
+            }));
+        }
+        Hotkeys.Apply(bindings);
+    }
+
+    private void OnFaviconReady(string host)
+    {
+        foreach (var g in Store.Config.Groups)
+        {
+            var items = g.Items.Where(i => i.Kind == ItemKind.Url && Favicons.HostOf(i.Target) == host).ToList();
+            if (items.Count == 0) continue;
+            foreach (var item in items) item.RefreshIcon();
+            g.Touch();
+        }
+    }
+
     public void ExitApp()
     {
         _docks?.CloseAll();
@@ -201,6 +257,9 @@ public partial class App : Application
                 break;
             case nameof(AppSettings.ShowTrayIcon):
                 UpdateTray();
+                break;
+            case nameof(AppSettings.SearchHotkey):
+                QueueHotkeys();
                 break;
         }
     }
@@ -231,6 +290,10 @@ public partial class App : Application
     {
         var menu = new ContextMenu { Placement = System.Windows.Controls.Primitives.PlacementMode.MousePoint };
         menu.Items.Add(MenuItem("", "Открыть Futuretray", () => ShowEditor()));
+        var searchItem = MenuItem("", "Поиск по группам", ShowSearch);
+        if (Core.Hotkey.TryParse(Store.Config.Settings.SearchHotkey, out var searchHotkey))
+            searchItem.InputGestureText = searchHotkey.Display;
+        menu.Items.Add(searchItem);
         if (Store.Config.Groups.Count > 0)
         {
             menu.Items.Add(new Separator());

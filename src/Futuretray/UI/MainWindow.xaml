@@ -157,6 +157,26 @@
                                     </WrapPanel>
                                 </Grid>
 
+                                <Border Background="{DynamicResource Brush.AccentSubtle}" CornerRadius="6" Padding="14,10" Margin="0,0,0,12"
+                                        Visibility="{Binding SourceFolder, Converter={StaticResource NullCollapsed}}">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="&#xE8F7;" Style="{StaticResource Text.Glyph}" Foreground="{DynamicResource Brush.AccentForeground}" Margin="0,0,12,0"/>
+                                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                            <TextBlock Text="Группа следит за папкой — новые файлы и ярлыки появляются здесь сами"/>
+                                            <TextBlock Text="{Binding SourceFolder}" Style="{StaticResource Text.Caption}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"/>
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                            <Button Style="{StaticResource Button.Subtle}" Content="Открыть" Click="OpenSourceFolder_Click"/>
+                                            <Button Style="{StaticResource Button.Subtle}" Content="Отвязать" Click="UnlinkFolder_Click"/>
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+
                                 <ListBox x:Name="ItemsList" Style="{StaticResource ListBox.Plain}" ItemsSource="{Binding Items}"
                                          ItemContainerStyle="{StaticResource EditorTile}" ItemTemplate="{StaticResource ItemTemplate}"
                                          SelectionChanged="ItemsList_SelectionChanged" KeyDown="ItemsList_KeyDown">
@@ -243,6 +263,26 @@
                                     </WrapPanel>
                                 </StackPanel>
                             </Grid>
+                        </Border>
+
+                        <!-- Быстрый доступ -->
+                        <Border Style="{StaticResource Card}">
+                            <StackPanel>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel VerticalAlignment="Center" Margin="0,0,16,0">
+                                        <TextBlock Text="Сочетание клавиш"/>
+                                        <TextBlock Style="{StaticResource Text.Caption}"
+                                                   Text="Открывает группу у курсора из любой программы. Дальше — стрелки, цифры 1–9 или набор названия."/>
+                                    </StackPanel>
+                                    <ui:HotkeyBox Grid.Column="1" Hotkey="{Binding Hotkey}"/>
+                                </Grid>
+                                <TextBlock x:Name="GroupHotkeyError" Style="{StaticResource Text.Caption}" Foreground="{DynamicResource Brush.Danger}"
+                                           HorizontalAlignment="Right" Margin="0,6,0,0" Visibility="Collapsed"/>
+                            </StackPanel>
                         </Border>
 
                         <!-- Внешний вид -->
@@ -633,6 +673,40 @@
                             </Grid>
                         </Border>
 
+                        <Border Style="{StaticResource Card}">
+                            <StackPanel>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel VerticalAlignment="Center" Margin="0,0,16,0">
+                                        <TextBlock Text="Поиск по всем группам"/>
+                                        <TextBlock Style="{StaticResource Text.Caption}"
+                                                   Text="Сочетание открывает строку поиска: набрали пару букв — Enter. Ещё — в меню значка в трее."/>
+                                    </StackPanel>
+                                    <ui:HotkeyBox Grid.Column="1" Hotkey="{Binding SearchHotkey}"/>
+                                </Grid>
+                                <TextBlock x:Name="SearchHotkeyError" Style="{StaticResource Text.Caption}" Foreground="{DynamicResource Brush.Danger}"
+                                           HorizontalAlignment="Right" Margin="0,6,0,0" Visibility="Collapsed"/>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Style="{StaticResource Card}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel VerticalAlignment="Center" Margin="0,0,16,0">
+                                    <TextBlock Text="Значки сайтов для ссылок"/>
+                                    <TextBlock Style="{StaticResource Text.Caption}"
+                                               Text="Futuretray один раз заглядывает на сам сайт за его значком и хранит его у вас. Без этого у ссылок значок браузера."/>
+                                </StackPanel>
+                                <CheckBox Grid.Column="1" Style="{StaticResource Toggle}" IsChecked="{Binding DownloadFavicons}"/>
+                            </Grid>
+                        </Border>
+
                         <Border x:Name="UpdatesCard" Style="{StaticResource Card}">
                             <StackPanel>
                                 <Grid>
@@ -692,6 +766,7 @@
                                 <WrapPanel Margin="0,12,0,0">
                                     <Button ui:Ui.Glyph="&#xE898;" Content="Экспорт групп…" Click="Export_Click" Margin="0,0,8,0"/>
                                     <Button ui:Ui.Glyph="&#xE896;" Content="Импорт групп…" Click="Import_Click" Margin="0,0,8,0"/>
+                                    <Button ui:Ui.Glyph="&#xE8B5;" Content="Из Taskbar Groups…" Click="ImportTaskbarGroups_Click" Margin="0,0,8,0"/>
                                     <Button Style="{StaticResource Button.Subtle}" ui:Ui.Glyph="&#xE838;" Content="Папка с данными" Click="OpenDataFolder_Click"/>
                                 </WrapPanel>
                             </StackPanel>
@@ -725,6 +800,8 @@
                                    Text="Группа — это один значок на панели задач, который по клику раскрывает набор ваших программ, папок и сайтов."/>
                         <Button Style="{StaticResource Button.Accent}" ui:Ui.Glyph="&#xE710;" Content="Создать первую группу"
                                 HorizontalAlignment="Center" Margin="0,24,0,0" Padding="18,8" Click="NewGroup_Click"/>
+                        <Button Style="{StaticResource Button.Link}" Content="Перенести группы из Taskbar Groups"
+                                HorizontalAlignment="Center" Margin="0,8,0,0" Click="ImportTaskbarGroups_Click"/>
                     </StackPanel>
                 </Grid>
             </Grid>
