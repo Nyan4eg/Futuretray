@@ -10,6 +10,8 @@ internal static class TestSetup
     internal static void Init()
     {
         ConfigStore.DataDir = TempDir("data");
+        // Тесты нарочно подсовывают битые файлы — их ошибки не должны попадать в журнал пользователя.
+        Log.Directory = TempDir("logs");
     }
 
     public static string TempDir(string name)

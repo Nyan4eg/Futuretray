@@ -115,7 +115,7 @@ public sealed class GroupTilesView : ContentControl
         {
             _grid.Children.Add(new TextBlock
             {
-                Text = "Группа пуста.\nДобавьте приложения в редакторе.",
+                Text = Loc.T("Группа пуста.\nДобавьте приложения в редакторе."),
                 TextAlignment = TextAlignment.Center,
                 Margin = new Thickness(18, 14, 18, 14),
                 FontSize = 13,
@@ -237,7 +237,7 @@ public sealed class GroupTilesView : ContentControl
     private void EnableFileDrop(Button tile, LaunchItem item)
     {
         tile.AllowDrop = true;
-        tile.ToolTip = $"{item.Name} — можно перетащить сюда файлы, чтобы открыть их в этой программе";
+        tile.ToolTip = Loc.F("{0} — можно перетащить сюда файлы, чтобы открыть их в этой программе", item.Name);
 
         void Highlight(bool on)
         {

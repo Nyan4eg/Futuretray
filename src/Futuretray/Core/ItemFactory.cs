@@ -20,7 +20,7 @@ public sealed class InstalledApp : Observable
     public string Name { get; }
     public string ParsingName { get; }
     public string? FilePath { get; }
-    public string Subtitle => FilePath ?? "Приложение Microsoft Store";
+    public string Subtitle => FilePath ?? Loc.T("Приложение Microsoft Store");
     public ImageSource? Icon { get => _icon; set => Set(ref _icon, value); }
     public bool IsSelected { get => _isSelected; set => Set(ref _isSelected, value); }
 }
@@ -156,7 +156,7 @@ public static partial class ItemFactory
         {
             var drive = new DriveInfo(path);
             var letter = drive.Name.TrimEnd('\\');
-            return string.IsNullOrWhiteSpace(drive.VolumeLabel) ? $"Диск {letter}" : $"{drive.VolumeLabel} ({letter})";
+            return string.IsNullOrWhiteSpace(drive.VolumeLabel) ? Loc.F("Диск {0}", letter) : $"{drive.VolumeLabel} ({letter})";
         }
         catch
         {

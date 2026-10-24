@@ -36,21 +36,25 @@ public partial class MainWindow : Window
         GroupList.ItemsSource = Groups;
         SettingsPanel.DataContext = _app.Store.Config.Settings;
         UpdatesCard.DataContext = _app.Updates;
+        // Строку формата со скобками {0} надёжнее задать здесь, а не через {ui:T} в XAML.
+        InstallUpdateButton.ContentStringFormat = Loc.T("Обновить до {0}");
         Loaded += (_, _) =>
         {
             if (_app.Updates.Available is { } update) ShowUpdateToast(update);
         };
-        VersionText.Text = $"Версия {Updater.CurrentVersionText} · группы приложений на панели задач";
+        VersionText.Text = Loc.F("Версия {0} · группы приложений на панели задач", Updater.CurrentVersionText);
 
         Groups.CollectionChanged += OnGroupsChanged;
         ThemeManager.Changed += ApplyEffects;
         _app.Hotkeys.FailuresChanged += UpdateHotkeyErrors;
+        _app.Store.Config.Settings.PropertyChanged += OnSettingsChanged;
         Loaded += (_, _) => UpdateHotkeyErrors();
         Closed += (_, _) =>
         {
             Groups.CollectionChanged -= OnGroupsChanged;
             ThemeManager.Changed -= ApplyEffects;
             _app.Hotkeys.FailuresChanged -= UpdateHotkeyErrors;
+            _app.Store.Config.Settings.PropertyChanged -= OnSettingsChanged;
             _pinWatch?.Stop();
             FlushToast();
             BindGroup(null);
@@ -190,7 +194,7 @@ public partial class MainWindow : Window
             {
                 Style = (Style)FindResource("Segment"),
                 GroupName = "DockMonitor",
-                Content = monitor.IsPrimary ? $"{i + 1} · основной" : $"{i + 1}",
+                Content = monitor.IsPrimary ? Loc.F("{0} · основной", i + 1) : $"{i + 1}",
                 ToolTip = $"{monitor.Device}  {monitor.Bounds.Width}×{monitor.Bounds.Height}",
                 IsChecked = monitor.Handle == current.Handle,
             };
@@ -240,7 +244,7 @@ public partial class MainWindow : Window
         var palette = ColorUtil.Palette.Skip(1).ToArray();
         var group = new Group
         {
-            Name = UniqueName("Новая группа"),
+            Name = UniqueName(Loc.T("Новая группа")),
             Color = palette[Groups.Count % palette.Length],
         };
         Groups.Add(group);
@@ -280,19 +284,19 @@ public partial class MainWindow : Window
         if (_group == null) return;
         var group = _group;
         var menu = new ContextMenu { PlacementTarget = (UIElement)sender, Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom };
-        menu.Items.Add(App.MenuItem("", "Дублировать", () => DuplicateGroup(group)));
+        menu.Items.Add(App.MenuItem("", Loc.T("Дублировать"), () => DuplicateGroup(group)));
         menu.Items.Add(group.SourceFolder == null
-            ? App.MenuItem("", "Синхронизировать с папкой…", () => LinkFolder(group))
-            : App.MenuItem("", "Отвязать от папки", () => group.SourceFolder = null));
-        menu.Items.Add(App.MenuItem("", "Показать ярлык в Проводнике", () => _app.Shortcuts.Reveal(group)));
-        menu.Items.Add(App.MenuItem("", "Добавить в меню «Пуск»", () => AddToStart(group)));
-        menu.Items.Add(App.MenuItem("", "Ярлык на рабочем столе", () =>
+            ? App.MenuItem("", Loc.T("Синхронизировать с папкой…"), () => LinkFolder(group))
+            : App.MenuItem("", Loc.T("Отвязать от папки"), () => group.SourceFolder = null));
+        menu.Items.Add(App.MenuItem("", Loc.T("Показать ярлык в Проводнике"), () => _app.Shortcuts.Reveal(group)));
+        menu.Items.Add(App.MenuItem("", Loc.T("Добавить в меню «Пуск»"), () => AddToStart(group)));
+        menu.Items.Add(App.MenuItem("", Loc.T("Ярлык на рабочем столе"), () =>
         {
             _app.Shortcuts.AddToDesktop(group);
-            ShowToast("Ярлык группы создан на рабочем столе");
+            ShowToast(Loc.T("Ярлык группы создан на рабочем столе"));
         }));
         menu.Items.Add(new Separator());
-        var delete = App.MenuItem("", "Удалить группу", () => DeleteGroup(group));
+        var delete = App.MenuItem("", Loc.T("Удалить группу"), () => DeleteGroup(group));
         delete.SetResourceReference(ForegroundProperty, "Brush.Danger");
         menu.Items.Add(delete);
         menu.IsOpen = true;
@@ -300,12 +304,12 @@ public partial class MainWindow : Window
 
     private void LinkFolder(Group group)
     {
-        var dialog = new OpenFolderDialog { Title = "Папка, за которой будет следить группа" };
+        var dialog = new OpenFolderDialog { Title = Loc.T("Папка, за которой будет следить группа") };
         if (dialog.ShowDialog(this) != true) return;
         group.SourceFolder = dialog.FolderName;
-        if (group.Items.Count == 0 || group.Name.StartsWith("Новая группа", StringComparison.CurrentCulture))
+        if (group.Items.Count == 0 || group.Name.StartsWith(Loc.T("Новая группа"), StringComparison.CurrentCulture))
             group.Name = Path.GetFileName(dialog.FolderName.TrimEnd('\\'));
-        ShowToast("Группа синхронизирована с папкой: всё новое в ней появится здесь само");
+        ShowToast(Loc.T("Группа синхронизирована с папкой: всё новое в ней появится здесь само"));
     }
 
     private void OpenSourceFolder_Click(object sender, RoutedEventArgs e)
@@ -317,14 +321,14 @@ public partial class MainWindow : Window
     {
         if (_group == null) return;
         _group.SourceFolder = null;
-        ShowToast("Группа больше не следит за папкой — уже добавленные элементы остались");
+        ShowToast(Loc.T("Группа больше не следит за папкой — уже добавленные элементы остались"));
     }
 
     private void ImportTaskbarGroups_Click(object sender, RoutedEventArgs e)
     {
         var dialog = new OpenFolderDialog
         {
-            Title = "Папка программы Taskbar Groups (где лежат config и Shortcuts)",
+            Title = Loc.T("Папка программы Taskbar Groups (где лежат config и Shortcuts)"),
             InitialDirectory = TaskbarGroupsImport.GuessFolder() ?? Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory),
         };
         if (dialog.ShowDialog(this) != true) return;
@@ -333,7 +337,7 @@ public partial class MainWindow : Window
             var groups = TaskbarGroupsImport.Load(dialog.FolderName);
             if (groups.Count == 0)
             {
-                ShowToast("Группы Taskbar Groups не найдены — выберите папку, где лежит config");
+                ShowToast(Loc.T("Группы Taskbar Groups не найдены — выберите папку, где лежит config"));
                 return;
             }
             foreach (var g in groups)
@@ -342,13 +346,24 @@ public partial class MainWindow : Window
                 Groups.Add(g);
             }
             GroupList.SelectedItem = groups[0];
-            ShowToast($"Перенесено групп: {groups.Count}. Закрепите их на панели задач заново — старые значки Taskbar Groups можно открепить");
+            ShowToast(Loc.F("Перенесено групп: {0}. Закрепите их на панели задач заново — старые значки Taskbar Groups можно открепить", groups.Count));
         }
         catch (Exception ex)
         {
             Log.Error(ex, "taskbar-groups import");
-            ShowToast("Не удалось прочитать группы: " + ex.Message);
+            ShowToast(Loc.T("Не удалось прочитать группы: ") + ex.Message);
         }
+    }
+
+    private void OnSettingsChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        // Окна собираются при запуске, поэтому новый язык включается после перезапуска.
+        if (e.PropertyName == nameof(AppSettings.Language))
+            ShowToast(Loc.T("Язык сменится после перезапуска Futuretray"), Loc.T("Перезапустить"), () =>
+            {
+                _app.Store.SaveNow();
+                _app.Restart();
+            });
     }
 
     private void UpdateHotkeyErrors()
@@ -366,7 +381,7 @@ public partial class MainWindow : Window
 
     private void DuplicateGroup(Group group)
     {
-        var copy = group.Duplicate(UniqueName(group.Name + " — копия"));
+        var copy = group.Duplicate(UniqueName(group.Name + Loc.T(" — копия")));
         Groups.Insert(Groups.IndexOf(group) + 1, copy);
         GroupList.SelectedItem = copy;
     }
@@ -378,7 +393,7 @@ public partial class MainWindow : Window
         Groups.Remove(group);
         if (Groups.Count > 0) GroupList.SelectedIndex = Math.Min(index, Groups.Count - 1);
 
-        ShowToast($"Группа «{group.Name}» удалена", "Отменить",
+        ShowToast(Loc.F("Группа «{0}» удалена", group.Name), Loc.T("Отменить"),
             action: () =>
             {
                 Groups.Insert(Math.Min(index, Groups.Count), group);
@@ -397,9 +412,9 @@ public partial class MainWindow : Window
         bool alreadyPinned = _app.Shortcuts.IsPinned(group);
 
         PinStatus.Text = alreadyPinned
-            ? "Эта группа уже закреплена. Если значок пропал с панели, закрепите его ещё раз любым способом ниже."
-            : "Windows не даёт программам закрепляться самостоятельно, поэтому последний шаг — за вами. Это займёт пару секунд.";
-        StartHint.Text = $"Затем нажмите Win, начните вводить «{group.Name}», щёлкните по найденной группе правой кнопкой → «Закрепить на панели задач».";
+            ? Loc.T("Эта группа уже закреплена. Если значок пропал с панели, закрепите его ещё раз любым способом ниже.")
+            : Loc.T("Windows не даёт программам закрепляться самостоятельно, поэтому последний шаг — за вами. Это займёт пару секунд.");
+        StartHint.Text = Loc.F("Затем нажмите Win, начните вводить «{0}», щёлкните по найденной группе правой кнопкой → «Закрепить на панели задач».", group.Name);
         SetPinWaiting(alreadyPinned ? PinState.Already : PinState.Waiting);
         ShowOverlay(PinPanel);
 
@@ -422,7 +437,7 @@ public partial class MainWindow : Window
             {
                 close.Stop();
                 if (PinPanel.Visibility == Visibility.Visible) CloseOverlay();
-                ShowToast($"Готово! «{group.Name}» закреплена на панели задач");
+                ShowToast(Loc.F("Готово! «{0}» закреплена на панели задач", group.Name));
             };
             close.Start();
         };
@@ -435,9 +450,9 @@ public partial class MainWindow : Window
     {
         (PinWaitingGlyph.Text, PinWaitingText.Text) = state switch
         {
-            PinState.Done => ("", "Готово! Группа закреплена на панели задач"),
-            PinState.Already => ("", "Уже закреплена на панели задач"),
-            _ => ("", "Жду, пока значок появится на панели задач…"),
+            PinState.Done => ("", Loc.T("Готово! Группа закреплена на панели задач")),
+            PinState.Already => ("", Loc.T("Уже закреплена на панели задач")),
+            _ => ("", Loc.T("Жду, пока значок появится на панели задач…")),
         };
         var key = state == PinState.Waiting ? "Brush.TextSecondary" : "Brush.AccentForeground";
         PinWaitingGlyph.SetResourceReference(TextBlock.ForegroundProperty, key);
@@ -457,7 +472,7 @@ public partial class MainWindow : Window
     private void AddToStart(Group group)
     {
         _app.Shortcuts.AddToStartMenu(group);
-        ShowToast($"«{group.Name}» добавлена в меню «Пуск». В поиске «Пуска» она может появиться через несколько секунд");
+        ShowToast(Loc.F("«{0}» добавлена в меню «Пуск». В поиске «Пуска» она может появиться через несколько секунд", group.Name));
     }
 
     // ================= Элементы группы =================
@@ -476,7 +491,7 @@ public partial class MainWindow : Window
         if (last == null) return;
         ItemsList.SelectedItem = last;
         ItemsList.ScrollIntoView(last);
-        if (count > 1) ShowToast($"Добавлено: {count} {AppsCountConverter.Plural(count, "элемент", "элемента", "элементов")}");
+        if (count > 1) ShowToast(Loc.F("Добавлено: {0} {1}", count, Loc.Plural(count, "элемент", "элемента", "элементов")));
     }
 
     private async void AddApp_Click(object sender, RoutedEventArgs e)
@@ -497,7 +512,7 @@ public partial class MainWindow : Window
                 Log.Error(ex, "Installed apps");
                 _installed = new List<InstalledApp>();
             }
-            PickerLoading.Text = "Ничего не найдено";
+            PickerLoading.Text = Loc.T("Ничего не найдено");
             PickerLoading.Visibility = _installed.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
             foreach (var app in _installed)
                 app.PropertyChanged += (_, args) =>
@@ -567,7 +582,7 @@ public partial class MainWindow : Window
     private void UpdatePickerCount()
     {
         int n = _installed?.Count(a => a.IsSelected) ?? 0;
-        PickerCount.Text = n == 0 ? "Ничего не выбрано" : $"Выбрано: {n}";
+        PickerCount.Text = n == 0 ? Loc.T("Ничего не выбрано") : Loc.F("Выбрано: {0}", n);
         PickerAddButton.IsEnabled = n > 0;
     }
 
@@ -593,17 +608,17 @@ public partial class MainWindow : Window
     {
         var dialog = new OpenFileDialog
         {
-            Title = "Выберите программы, ярлыки или файлы",
+            Title = Loc.T("Выберите программы, ярлыки или файлы"),
             Multiselect = true,
             DereferenceLinks = false,
-            Filter = "Программы и ярлыки|*.exe;*.lnk;*.url;*.bat;*.cmd;*.ps1;*.appref-ms|Все файлы|*.*",
+            Filter = Loc.T("Программы и ярлыки|*.exe;*.lnk;*.url;*.bat;*.cmd;*.ps1;*.appref-ms|Все файлы|*.*"),
         };
         if (dialog.ShowDialog(this) == true) AddItems(dialog.FileNames.Select(ItemFactory.FromPath));
     }
 
     private void AddFolder_Click(object sender, RoutedEventArgs e)
     {
-        var dialog = new OpenFolderDialog { Title = "Выберите папки", Multiselect = true };
+        var dialog = new OpenFolderDialog { Title = Loc.T("Выберите папки"), Multiselect = true };
         if (dialog.ShowDialog(this) == true) AddItems(dialog.FolderNames.Select(ItemFactory.FromPath));
     }
 
@@ -665,7 +680,7 @@ public partial class MainWindow : Window
         if (index < 0) return;
         group.Items.Remove(item);
         if (group.Items.Count > 0) ItemsList.SelectedIndex = Math.Min(index, group.Items.Count - 1);
-        ShowToast($"«{item.Name}» удалено из группы", "Отменить", () =>
+        ShowToast(Loc.F("«{0}» удалено из группы", item.Name), Loc.T("Отменить"), () =>
         {
             group.Items.Insert(Math.Min(index, group.Items.Count), item);
             if (group == _group) ItemsList.SelectedItem = item;
@@ -685,7 +700,7 @@ public partial class MainWindow : Window
     private void BrowseTarget_Click(object sender, RoutedEventArgs e)
     {
         if (SelectedItem is not { } item) return;
-        var dialog = new OpenFileDialog { Title = "Выберите файл", DereferenceLinks = false, Filter = "Все файлы|*.*" };
+        var dialog = new OpenFileDialog { Title = Loc.T("Выберите файл"), DereferenceLinks = false, Filter = Loc.T("Все файлы|*.*") };
         if (dialog.ShowDialog(this) != true) return;
         var fresh = ItemFactory.FromPath(dialog.FileName);
         item.Kind = ItemKind.Path;
@@ -707,8 +722,8 @@ public partial class MainWindow : Window
     {
         var dialog = new OpenFileDialog
         {
-            Title = "Выберите картинку или значок",
-            Filter = "Картинки и значки|*.png;*.jpg;*.jpeg;*.bmp;*.ico;*.exe;*.dll|Все файлы|*.*",
+            Title = Loc.T("Выберите картинку или значок"),
+            Filter = Loc.T("Картинки и значки|*.png;*.jpg;*.jpeg;*.bmp;*.ico;*.exe;*.dll|Все файлы|*.*"),
         };
         if (dialog.ShowDialog(this) != true) return null;
         var ext = Path.GetExtension(dialog.FileName).ToLowerInvariant();
@@ -774,13 +789,13 @@ public partial class MainWindow : Window
         {
             DropHintFrame.SetResourceReference(System.Windows.Shapes.Shape.StrokeProperty, "Brush.Accent");
             DropHintFrame.Opacity = 1;
-            DropHintText.Text = "Отпустите, чтобы добавить в группу";
+            DropHintText.Text = Loc.T("Отпустите, чтобы добавить в группу");
         }
         else
         {
             DropHintFrame.SetResourceReference(System.Windows.Shapes.Shape.StrokeProperty, "Brush.ControlStrong");
             DropHintFrame.Opacity = 0.5;
-            DropHintText.Text = "Перетащите сюда программы, ярлыки, папки, файлы или ссылки из браузера";
+            DropHintText.Text = Loc.T("Перетащите сюда программы, ярлыки, папки, файлы или ссылки из браузера");
         }
     }
 
@@ -797,7 +812,7 @@ public partial class MainWindow : Window
                 Style = (Style)FindResource("Swatch"),
                 GroupName = "GroupColor",
                 Background = ColorUtil.Brush(ColorUtil.Resolve(value)),
-                ToolTip = value == "accent" ? "Цвет акцента Windows" : value,
+                ToolTip = value == "accent" ? Loc.T("Цвет акцента Windows") : value,
                 IsChecked = string.Equals(_group.Color, value, StringComparison.OrdinalIgnoreCase),
             };
             if (value == "accent")
@@ -863,7 +878,7 @@ public partial class MainWindow : Window
             IconChoicePanel.Children.Add(choice);
         }
         if (_group.Items.Count == 0)
-            IconChoicePanel.Children.Add(new TextBlock { Text = "Сначала добавьте приложения", Style = (Style)FindResource("Text.Caption") });
+            IconChoicePanel.Children.Add(new TextBlock { Text = Loc.T("Сначала добавьте приложения"), Style = (Style)FindResource("Text.Caption") });
     }
 
     private void PickGroupIcon_Click(object sender, RoutedEventArgs e)
@@ -885,22 +900,22 @@ public partial class MainWindow : Window
 
     private void Export_Click(object sender, RoutedEventArgs e)
     {
-        var dialog = new SaveFileDialog { Title = "Экспорт групп", FileName = "Futuretray-группы.json", Filter = "Futuretray (*.json)|*.json" };
+        var dialog = new SaveFileDialog { Title = Loc.T("Экспорт групп"), FileName = Loc.T("Futuretray-группы.json"), Filter = "Futuretray (*.json)|*.json" };
         if (dialog.ShowDialog(this) != true) return;
         try
         {
             File.WriteAllText(dialog.FileName, JsonSerializer.Serialize(Groups.ToList(), ConfigStore.JsonOptions));
-            ShowToast($"Сохранено групп: {Groups.Count}");
+            ShowToast(Loc.F("Сохранено групп: {0}", Groups.Count));
         }
         catch (Exception ex)
         {
-            ShowToast("Не удалось сохранить: " + ex.Message);
+            ShowToast(Loc.T("Не удалось сохранить: ") + ex.Message);
         }
     }
 
     private void Import_Click(object sender, RoutedEventArgs e)
     {
-        var dialog = new OpenFileDialog { Title = "Импорт групп", Filter = "Futuretray (*.json)|*.json|Все файлы|*.*" };
+        var dialog = new OpenFileDialog { Title = Loc.T("Импорт групп"), Filter = Loc.T("Futuretray (*.json)|*.json|Все файлы|*.*") };
         if (dialog.ShowDialog(this) != true) return;
         try
         {
@@ -916,7 +931,7 @@ public partial class MainWindow : Window
             }
             if (groups == null || groups.Count == 0)
             {
-                ShowToast("В файле нет групп");
+                ShowToast(Loc.T("В файле нет групп"));
                 return;
             }
             foreach (var g in groups)
@@ -927,11 +942,11 @@ public partial class MainWindow : Window
                 Groups.Add(g);
             }
             GroupList.SelectedItem = groups[0];
-            ShowToast($"Импортировано групп: {groups.Count}");
+            ShowToast(Loc.F("Импортировано групп: {0}", groups.Count));
         }
         catch (Exception ex)
         {
-            ShowToast("Не удалось прочитать файл: " + ex.Message);
+            ShowToast(Loc.T("Не удалось прочитать файл: ") + ex.Message);
         }
     }
 
@@ -943,12 +958,12 @@ public partial class MainWindow : Window
         {
             var path = DiagnosticsReport.Create(_app.Store);
             System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("explorer.exe", $"/select,\"{path}\"") { UseShellExecute = true })?.Dispose();
-            ShowToast("Отчёт сохранён на рабочий стол — отправьте этот zip разработчику");
+            ShowToast(Loc.T("Отчёт сохранён на рабочий стол — отправьте этот zip разработчику"));
         }
         catch (Exception ex)
         {
             Log.Error(ex, "Report");
-            ShowToast("Не удалось собрать отчёт: " + ex.Message);
+            ShowToast(Loc.T("Не удалось собрать отчёт: ") + ex.Message);
         }
     }
 
@@ -966,7 +981,7 @@ public partial class MainWindow : Window
     }
 
     public void ShowUpdateToast(UpdateInfo update) =>
-        ShowToast($"Доступна новая версия Futuretray — {update.Version.ToString(3)}", "Обновить",
+        ShowToast(Loc.F("Доступна новая версия Futuretray — {0}", update.Version.ToString(3)), Loc.T("Обновить"),
             () => _ = _app.Updates.InstallAsync());
 
     private void Exit_Click(object sender, RoutedEventArgs e) => _app.ExitApp();

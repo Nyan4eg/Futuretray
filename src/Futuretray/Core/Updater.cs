@@ -96,7 +96,7 @@ public static class Updater
             if (!hash.Equals(update.Sha256, StringComparison.OrdinalIgnoreCase))
             {
                 File.Delete(path);
-                throw new InvalidDataException("Скачанный файл повреждён (контрольная сумма не совпала). Попробуйте ещё раз.");
+                throw new InvalidDataException(Loc.T("Скачанный файл повреждён (контрольная сумма не совпала). Попробуйте ещё раз."));
             }
         }
         return path;
@@ -115,7 +115,7 @@ public sealed class UpdateManager : Observable
     private readonly AppSettings _settings;
     private readonly DispatcherTimer _timer = new() { Interval = TimeSpan.FromHours(12) };
     private UpdateInfo? _available;
-    private string _status = $"Версия {Updater.CurrentVersionText}";
+    private string _status = Loc.F("Версия {0}", Updater.CurrentVersionText);
     private bool _busy;
 
     public UpdateManager(AppSettings settings)
@@ -147,7 +147,7 @@ public sealed class UpdateManager : Observable
     {
         if (Busy || (!manual && !_settings.CheckUpdates)) return;
         Busy = true;
-        if (manual) Status = "Проверяю…";
+        if (manual) Status = Loc.T("Проверяю…");
         try
         {
             var update = await Updater.CheckAsync();
@@ -155,14 +155,14 @@ public sealed class UpdateManager : Observable
             bool isNew = update != null && update.Version != Available?.Version;
             Available = update;
             Status = update == null
-                ? $"У вас последняя версия — {Updater.CurrentVersionText}"
-                : $"Доступна версия {update.Version.ToString(3)} (у вас {Updater.CurrentVersionText})";
+                ? Loc.F("У вас последняя версия — {0}", Updater.CurrentVersionText)
+                : Loc.F("Доступна версия {0} (у вас {1})", update.Version.ToString(3), Updater.CurrentVersionText);
             if (isNew) Found?.Invoke(update!);
         }
         catch (Exception ex)
         {
             Log.Error(ex, "Update check");
-            if (manual) Status = "Не удалось проверить обновления: нет связи с GitHub";
+            if (manual) Status = Loc.T("Не удалось проверить обновления: нет связи с GitHub");
         }
         finally
         {
@@ -176,16 +176,16 @@ public sealed class UpdateManager : Observable
         Busy = true;
         try
         {
-            var progress = new Progress<double>(p => Status = $"Скачиваю версию {update.Version.ToString(3)}… {p:P0}");
+            var progress = new Progress<double>(p => Status = Loc.F("Скачиваю версию {0}… {1:P0}", update.Version.ToString(3), p));
             var path = await Updater.DownloadAsync(update, progress);
-            Status = "Устанавливаю…";
+            Status = Loc.T("Устанавливаю…");
             Updater.RunInstaller(path);
             App.Host.ExitApp();
         }
         catch (Exception ex)
         {
             Log.Error(ex, "Update install");
-            Status = ex is InvalidDataException ? ex.Message : "Не удалось скачать обновление. Попробуйте позже.";
+            Status = ex is InvalidDataException ? ex.Message : Loc.T("Не удалось скачать обновление. Попробуйте позже.");
             Busy = false;
         }
     }

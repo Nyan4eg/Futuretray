@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Windows;
 using System.Windows.Data;
+using System.Windows.Markup;
 using System.Windows.Media;
 
 namespace Futuretray.UI;
@@ -32,6 +33,17 @@ public static class Ui
         "Placeholder", typeof(string), typeof(Ui), new PropertyMetadata(null));
     public static string? GetPlaceholder(DependencyObject o) => (string?)o.GetValue(PlaceholderProperty);
     public static void SetPlaceholder(DependencyObject o, string? v) => o.SetValue(PlaceholderProperty, v);
+}
+
+/// <summary>Перевод строки в XAML: Text="{ui:T 'Текст'}".</summary>
+[MarkupExtensionReturnType(typeof(string))]
+public sealed class T : MarkupExtension
+{
+    public T(string text) => Text = text;
+
+    public string Text { get; set; }
+
+    public override object ProvideValue(IServiceProvider serviceProvider) => Futuretray.Core.Loc.T(Text);
 }
 
 public sealed class EnumBoolConverter : IValueConverter
@@ -95,7 +107,7 @@ public sealed class IntDoubleConverter : IValueConverter
 public sealed class ColumnsTextConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture) =>
-        value is int i && i > 0 ? i.ToString(culture) : "Авто";
+        value is int i && i > 0 ? i.ToString(culture) : Core.Loc.T("Авто");
 
     public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => Binding.DoNothing;
 }
@@ -112,7 +124,7 @@ public sealed class PercentConverter : IValueConverter
 public sealed class AppsCountConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture) =>
-        value is int n ? (n == 0 ? "Пусто" : $"{n} {Plural(n, "приложение", "приложения", "приложений")}") : "";
+        value is int n ? (n == 0 ? Core.Loc.T("Пусто") : $"{n} {Core.Loc.Plural(n, "приложение", "приложения", "приложений")}") : "";
 
     public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => Binding.DoNothing;
 

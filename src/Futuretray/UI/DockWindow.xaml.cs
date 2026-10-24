@@ -567,11 +567,11 @@ public partial class DockWindow : Window
     {
         var menu = NewMenu(tile);
         PopupWindow.AddRunningItems(menu, item);
-        menu.Items.Add(App.MenuItem("", "Открыть", () => Launch(item)));
+        menu.Items.Add(App.MenuItem("", Loc.T("Открыть"), () => Launch(item)));
         if (item.Kind == ItemKind.Path)
-            menu.Items.Add(App.MenuItem("", "Запустить от имени администратора", () => Launcher.Launch(item, forceAdmin: true)));
+            menu.Items.Add(App.MenuItem("", Loc.T("Запустить от имени администратора"), () => Launcher.Launch(item, forceAdmin: true)));
         if (item.Kind != ItemKind.Url)
-            menu.Items.Add(App.MenuItem("", "Открыть расположение", () => Launcher.OpenLocation(item)));
+            menu.Items.Add(App.MenuItem("", Loc.T("Открыть расположение"), () => Launcher.OpenLocation(item)));
         menu.Items.Add(new Separator());
         AddDockItems(menu);
         menu.IsOpen = true;
@@ -582,7 +582,7 @@ public partial class DockWindow : Window
         if (e.Handled) return;
         e.Handled = true;
         var menu = NewMenu(Root);
-        menu.Items.Add(App.MenuItem("", "Открыть все", () =>
+        menu.Items.Add(App.MenuItem("", Loc.T("Открыть все"), () =>
         {
             foreach (var item in Group.Items.ToList()) Launcher.Launch(item);
         }));
@@ -594,21 +594,21 @@ public partial class DockWindow : Window
     private void AddDockItems(ContextMenu menu)
     {
         const string check = "";
-        menu.Items.Add(App.MenuItem("", "Изменить группу…", () => App.Host.ShowEditor(Group.Id)));
-        menu.Items.Add(App.MenuItem(Group.DockTopmost ? check : null, "Поверх всех окон", () => Group.DockTopmost = !Group.DockTopmost));
+        menu.Items.Add(App.MenuItem("", Loc.T("Изменить группу…"), () => App.Host.ShowEditor(Group.Id)));
+        menu.Items.Add(App.MenuItem(Group.DockTopmost ? check : null, Loc.T("Поверх всех окон"), () => Group.DockTopmost = !Group.DockTopmost));
         if (!Free)
-            menu.Items.Add(App.MenuItem(Group.DockAutoHide ? check : null, "Прятать за край экрана", () => Group.DockAutoHide = !Group.DockAutoHide));
+            menu.Items.Add(App.MenuItem(Group.DockAutoHide ? check : null, Loc.T("Прятать за край экрана"), () => Group.DockAutoHide = !Group.DockAutoHide));
         menu.Items.Add(new Separator());
         foreach (var (edge, title) in new[]
                  {
-                     (DockEdge.Left, "Слева"), (DockEdge.Top, "Сверху"), (DockEdge.Right, "Справа"),
-                     (DockEdge.Bottom, "Снизу"), (DockEdge.Free, "Свободно (перетаскивать)"),
+                     (DockEdge.Left, Loc.T("Слева")), (DockEdge.Top, Loc.T("Сверху")), (DockEdge.Right, Loc.T("Справа")),
+                     (DockEdge.Bottom, Loc.T("Снизу")), (DockEdge.Free, Loc.T("Свободно (перетаскивать)")),
                  })
         {
             var captured = edge;
             menu.Items.Add(App.MenuItem(Group.DockEdge == edge ? check : null, title, () => Group.DockEdge = captured));
         }
         menu.Items.Add(new Separator());
-        menu.Items.Add(App.MenuItem("", "Убрать с рабочего стола", () => Group.DockEnabled = false));
+        menu.Items.Add(App.MenuItem("", Loc.T("Убрать с рабочего стола"), () => Group.DockEnabled = false));
     }
 }

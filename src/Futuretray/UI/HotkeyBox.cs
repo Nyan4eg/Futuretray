@@ -22,7 +22,7 @@ public sealed class HotkeyBox : Button
         MinWidth = 190;
         HorizontalContentAlignment = HorizontalAlignment.Left;
         Ui.SetGlyph(this, "");
-        ToolTip = "Нажмите и введите сочетание. Backspace — убрать, Esc — отмена.";
+        ToolTip = Loc.T("Нажмите и введите сочетание. Backspace — убрать, Esc — отмена.");
         Loaded += (_, _) => UpdateText();
     }
 
@@ -38,7 +38,7 @@ public sealed class HotkeyBox : Button
         if (_recording) return;
         _recording = true;
         App.Host.Hotkeys.Suspended = true;
-        Content = "Нажмите сочетание…";
+        Content = Loc.T("Нажмите сочетание…");
         Focus();
     }
 
@@ -67,7 +67,7 @@ public sealed class HotkeyBox : Button
         if (Core.Hotkey.IsModifierKey(key))
         {
             var preview = new Core.Hotkey(modifiers, Key.None).ToString().Replace("+None", "").Replace("None", "");
-            Content = string.IsNullOrEmpty(preview) ? "Нажмите сочетание…" : preview.Replace("+", " + ") + " + …";
+            Content = string.IsNullOrEmpty(preview) ? Loc.T("Нажмите сочетание…") : preview.Replace("+", " + ") + " + …";
             return;
         }
         // Без модификатора разрешаем только F1–F24: иначе перехватим обычный ввод.
@@ -94,6 +94,6 @@ public sealed class HotkeyBox : Button
     private void UpdateText()
     {
         if (_recording) return;
-        Content = Core.Hotkey.TryParse(Hotkey, out var hotkey) ? hotkey.Display : "Не задано";
+        Content = Core.Hotkey.TryParse(Hotkey, out var hotkey) ? hotkey.Display : Loc.T("Не задано");
     }
 }

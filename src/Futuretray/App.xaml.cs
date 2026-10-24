@@ -50,6 +50,10 @@ public partial class App : Application
         ToolTipService.InitialShowDelayProperty.OverrideMetadata(typeof(FrameworkElement), new FrameworkPropertyMetadata(450));
 
         Store.Load();
+        Loc.Init(Store.Config.Settings.Language);
+#if DEBUG
+        if (Environment.GetEnvironmentVariable("FUTURETRAY_LANG") == "en") Loc.Init(UiLanguage.English);
+#endif
         ThemeManager.Initialize(Store.Config.Settings);
         ThemeManager.Changed += () =>
         {
@@ -129,7 +133,7 @@ public partial class App : Application
                 case CommandKind.Background:
                     break;
                 case CommandKind.Updated:
-                    ShowEditor(null, $"Готово! Futuretray обновлён до версии {Updater.CurrentVersionText}");
+                    ShowEditor(null, Loc.F("Готово! Futuretray обновлён до версии {0}", Updater.CurrentVersionText));
                     break;
                 default:
                     ShowEditor(command.GroupId);
@@ -147,7 +151,7 @@ public partial class App : Application
         var group = Store.Find(groupId);
         if (group == null)
         {
-            ShowEditor(null, "Эта группа больше не существует. Открепите её значок с панели задач.");
+            ShowEditor(null, Loc.T("Эта группа больше не существует. Открепите её значок с панели задач."));
             return;
         }
 
@@ -231,6 +235,13 @@ public partial class App : Application
         }
     }
 
+    /// <summary>Перезапуск (например, после смены языка): новая копия дождётся, пока эта завершится.</summary>
+    public void Restart()
+    {
+        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(ShortcutManager.ExePath, "--restart") { UseShellExecute = true })?.Dispose();
+        ExitApp();
+    }
+
     public void ExitApp()
     {
         _docks?.CloseAll();
@@ -270,7 +281,7 @@ public partial class App : Application
         {
             try
             {
-                _tray = new TrayIcon("Futuretray — группы на панели задач");
+                _tray = new TrayIcon(Loc.T("Futuretray — группы на панели задач"));
                 _tray.Click += () => ShowEditor();
                 _tray.RightClick += ShowTrayMenu;
             }
@@ -289,8 +300,8 @@ public partial class App : Application
     private void ShowTrayMenu()
     {
         var menu = new ContextMenu { Placement = System.Windows.Controls.Primitives.PlacementMode.MousePoint };
-        menu.Items.Add(MenuItem("", "Открыть Futuretray", () => ShowEditor()));
-        var searchItem = MenuItem("", "Поиск по группам", ShowSearch);
+        menu.Items.Add(MenuItem("", Loc.T("Открыть Futuretray"), () => ShowEditor()));
+        var searchItem = MenuItem("", Loc.T("Поиск по группам"), ShowSearch);
         if (Core.Hotkey.TryParse(Store.Config.Settings.SearchHotkey, out var searchHotkey))
             searchItem.InputGestureText = searchHotkey.Display;
         menu.Items.Add(searchItem);
@@ -307,8 +318,8 @@ public partial class App : Application
         }
         menu.Items.Add(new Separator());
         if (Updates.Available is { } update)
-            menu.Items.Add(MenuItem("", $"Обновить до версии {update.Version.ToString(3)}", () => _ = Updates.InstallAsync()));
-        menu.Items.Add(MenuItem("", "Выйти", ExitApp));
+            menu.Items.Add(MenuItem("", Loc.F("Обновить до версии {0}", update.Version.ToString(3)), () => _ = Updates.InstallAsync()));
+        menu.Items.Add(MenuItem("", Loc.T("Выйти"), ExitApp));
 
         if (_tray != null) Native.SetForegroundWindow(_tray.Handle);
         menu.IsOpen = true;

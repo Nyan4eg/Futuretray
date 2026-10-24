@@ -2,7 +2,7 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:ui="clr-namespace:Futuretray.UI"
-        Title="Futuretray — поиск"
+        Title="{ui:T 'Futuretray — поиск'}"
         WindowStyle="SingleBorderWindow" ResizeMode="NoResize" ShowInTaskbar="False" Topmost="True"
         WindowStartupLocation="Manual" ShowActivated="True" Width="620" Height="120"
         Background="Transparent"
@@ -69,7 +69,7 @@
                 </Grid.ColumnDefinitions>
                 <TextBlock Text="&#xE721;" Style="{StaticResource Text.Glyph}" FontSize="18" Foreground="{DynamicResource Brush.TextSecondary}" Margin="0,0,12,0"/>
                 <TextBox x:Name="Query" Grid.Column="1" Style="{StaticResource SearchBox}" Padding="0,4"
-                         ui:Ui.Placeholder="Найти программу в группах…" TextChanged="Query_TextChanged" PreviewKeyDown="Query_PreviewKeyDown"/>
+                         ui:Ui.Placeholder="{ui:T 'Найти программу в группах…'}" TextChanged="Query_TextChanged" PreviewKeyDown="Query_PreviewKeyDown"/>
             </Grid>
             <Border Height="1" Background="{DynamicResource Brush.Divider}" Margin="-8,0,-8,6"/>
 
@@ -91,7 +91,7 @@
                             </StackPanel>
                             <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
                                 <Border Width="14" Height="3" CornerRadius="1.5" Margin="0,0,10,0" Background="{DynamicResource Brush.TextSecondary}"
-                                        Visibility="{Binding IsRunning, Converter={StaticResource BoolVisible}}" ToolTip="Программа открыта"/>
+                                        Visibility="{Binding IsRunning, Converter={StaticResource BoolVisible}}" ToolTip="{ui:T 'Программа открыта'}"/>
                                 <Image Source="{Binding GroupIcon}" Width="18" Height="18" RenderOptions.BitmapScalingMode="HighQuality" ToolTip="{Binding GroupName}"/>
                             </StackPanel>
                         </Grid>
@@ -99,11 +99,11 @@
                 </ListBox.ItemTemplate>
             </ListBox>
 
-            <TextBlock x:Name="EmptyText" Text="Ничего не найдено" Margin="12,10,12,14" Visibility="Collapsed"
+            <TextBlock x:Name="EmptyText" Text="{ui:T 'Ничего не найдено'}" Margin="12,10,12,14" Visibility="Collapsed"
                        Foreground="{DynamicResource Brush.TextSecondary}"/>
 
             <TextBlock Style="{StaticResource Text.Caption}" Margin="12,6,12,2" TextWrapping="NoWrap"
-                       Text="Enter — открыть  ·  Shift+Enter — новая копия  ·  ↑↓ — выбор  ·  Esc — закрыть"/>
+                       Text="{ui:T 'Enter — открыть  ·  Shift+Enter — новая копия  ·  ↑↓ — выбор  ·  Esc — закрыть'}"/>
         </StackPanel>
     </Grid>
 </Window>

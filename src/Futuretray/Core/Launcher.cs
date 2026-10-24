@@ -34,7 +34,7 @@ public static class Launcher
     /// <summary>Открыть файлы программой из группы (как перетаскивание файла на её значок).</summary>
     public static string? OpenWith(LaunchItem item, IReadOnlyList<string> files)
     {
-        if (FileHandler(item) is not { } handler) return "Эта программа не умеет открывать файлы";
+        if (FileHandler(item) is not { } handler) return Loc.T("Эта программа не умеет открывать файлы");
         try
         {
             Native.AllowSetForegroundWindow(Native.ASFW_ANY);
@@ -74,7 +74,7 @@ public static class Launcher
                 default:
                     var target = Environment.ExpandEnvironmentVariables(item.Target);
                     if (!File.Exists(target) && !Directory.Exists(target))
-                        return $"Не найдено: {target}";
+                        return Loc.F("Не найдено: {0}", target);
                     psi.FileName = target;
                     psi.Arguments = item.Arguments ?? "";
                     psi.WorkingDirectory = item.WorkingDirectory is { } wd

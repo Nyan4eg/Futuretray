@@ -167,9 +167,9 @@ public partial class PopupWindow : Window
     public static void AddRunningItems(ContextMenu menu, LaunchItem item)
     {
         if (RunningApps.Current is not { } running || !running.IsRunning(item)) return;
-        menu.Items.Add(App.MenuItem("", "Новое окно", () => Launcher.Launch(item)));
+        menu.Items.Add(App.MenuItem("", Loc.T("Новое окно"), () => Launcher.Launch(item)));
         int count = running.WindowsFor(item).Count;
-        menu.Items.Add(App.MenuItem("", count > 1 ? $"Закрыть все окна ({count})" : "Закрыть окно", () => running.CloseWindows(item)));
+        menu.Items.Add(App.MenuItem("", count > 1 ? Loc.F("Закрыть все окна ({0})", count) : Loc.T("Закрыть окно"), () => running.CloseWindows(item)));
         menu.Items.Add(new Separator());
     }
 
@@ -177,21 +177,21 @@ public partial class PopupWindow : Window
     {
         var menu = NewMenu(tile);
         AddRunningItems(menu, item);
-        menu.Items.Add(App.MenuItem("", "Открыть", () => OnItemInvoked(item, false)));
+        menu.Items.Add(App.MenuItem("", Loc.T("Открыть"), () => OnItemInvoked(item, false)));
         if (item.Kind == ItemKind.Path)
-            menu.Items.Add(App.MenuItem("", "Запустить от имени администратора", () =>
+            menu.Items.Add(App.MenuItem("", Loc.T("Запустить от имени администратора"), () =>
             {
                 Launcher.Launch(item, forceAdmin: true);
                 HidePopup();
             }));
         if (item.Kind != ItemKind.Url)
-            menu.Items.Add(App.MenuItem("", "Открыть расположение", () =>
+            menu.Items.Add(App.MenuItem("", Loc.T("Открыть расположение"), () =>
             {
                 HidePopup();
                 Launcher.OpenLocation(item);
             }));
         menu.Items.Add(new Separator());
-        menu.Items.Add(App.MenuItem("", "Изменить группу…", () =>
+        menu.Items.Add(App.MenuItem("", Loc.T("Изменить группу…"), () =>
         {
             HidePopup();
             App.Host.ShowEditor(Group.Id);
@@ -204,8 +204,8 @@ public partial class PopupWindow : Window
         if (e.Handled) return;
         e.Handled = true;
         var menu = NewMenu(Root);
-        menu.Items.Add(App.MenuItem("", "Открыть все", OpenAll));
-        menu.Items.Add(App.MenuItem("", "Изменить группу…", () =>
+        menu.Items.Add(App.MenuItem("", Loc.T("Открыть все"), OpenAll));
+        menu.Items.Add(App.MenuItem("", Loc.T("Изменить группу…"), () =>
         {
             HidePopup();
             App.Host.ShowEditor(Group.Id);
@@ -276,7 +276,7 @@ public partial class PopupWindow : Window
             if (focus) Tiles.FocusFirst();
             return;
         }
-        ShowStatus("", first == null ? $"{filter} — нет совпадений" : filter, null);
+        ShowStatus("", first == null ? Loc.F("{0} — нет совпадений", filter) : filter, null);
         if (focus) first?.Focus();
     }
 

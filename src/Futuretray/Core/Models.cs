@@ -33,6 +33,7 @@ public enum TileSize { Small, Medium, Large }
 public enum BackdropKind { Acrylic, Mica, Solid }
 public enum GroupIconMode { Auto, Item, Custom }
 public enum ThemePreference { System, Light, Dark }
+public enum UiLanguage { Auto, Russian, English }
 public enum DockEdge { Left, Top, Right, Bottom, Free }
 public enum DockAlign { Start, Center, End }
 
@@ -70,12 +71,12 @@ public sealed class LaunchItem : Observable
     [JsonIgnore]
     public string KindLabel => Kind switch
     {
-        ItemKind.Url => "Ссылка",
-        ItemKind.ShellApp => "Приложение Windows",
-        _ when Directory.Exists(Target) => "Папка",
-        _ when Target.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) => "Программа",
-        _ when Target.EndsWith(".lnk", StringComparison.OrdinalIgnoreCase) => "Ярлык",
-        _ => "Файл",
+        ItemKind.Url => Loc.T("Ссылка"),
+        ItemKind.ShellApp => Loc.T("Приложение Windows"),
+        _ when Directory.Exists(Target) => Loc.T("Папка"),
+        _ when Target.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) => Loc.T("Программа"),
+        _ when Target.EndsWith(".lnk", StringComparison.OrdinalIgnoreCase) => Loc.T("Ярлык"),
+        _ => Loc.T("Файл"),
     };
 
     [JsonIgnore] public bool IsPath => Kind == ItemKind.Path;
@@ -108,7 +109,7 @@ public sealed class Group : Observable
     };
 
     private string _id = Ids.New();
-    private string _name = "Новая группа";
+    private string _name = Loc.T("Новая группа");
     private ObservableCollection<LaunchItem> _items = new();
     private GroupIconMode _iconMode = GroupIconMode.Auto;
     private string? _iconItemId;
@@ -281,6 +282,9 @@ public sealed class AppSettings : Observable
     private bool _switchToRunning = true;
     private string? _searchHotkey = "Win+Alt+Space";
     private bool _downloadFavicons = true;
+    private UiLanguage _language = UiLanguage.Auto;
+
+    public UiLanguage Language { get => _language; set => Set(ref _language, value); }
 
     /// <summary>Сочетание для поиска по всем группам; null — выключено.</summary>
     /// <remarks>Пишем и null, иначе «выключено» после перезапуска превращалось бы в сочетание по умолчанию.</remarks>

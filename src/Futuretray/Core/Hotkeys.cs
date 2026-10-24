@@ -33,11 +33,12 @@ public readonly record struct Hotkey(ModifierKeys Modifiers, Key Key)
 
     public override string ToString()
     {
+        // Порядок как в подсказках Windows: Win + Ctrl + Alt + Shift.
         var parts = new List<string>();
+        if (Modifiers.HasFlag(ModifierKeys.Windows)) parts.Add("Win");
         if (Modifiers.HasFlag(ModifierKeys.Control)) parts.Add("Ctrl");
         if (Modifiers.HasFlag(ModifierKeys.Alt)) parts.Add("Alt");
         if (Modifiers.HasFlag(ModifierKeys.Shift)) parts.Add("Shift");
-        if (Modifiers.HasFlag(ModifierKeys.Windows)) parts.Add("Win");
         parts.Add(Key.ToString());
         return string.Join("+", parts);
     }
@@ -57,7 +58,7 @@ public readonly record struct Hotkey(ModifierKeys Modifiers, Key Key)
     {
         >= Key.D0 and <= Key.D9 => ((int)(key - Key.D0)).ToString(),
         >= Key.NumPad0 and <= Key.NumPad9 => "Num " + (int)(key - Key.NumPad0),
-        Key.Space => "Пробел",
+        Key.Space => Loc.T("Пробел"),
         Key.Return => "Enter",
         Key.Escape => "Esc",
         Key.Back => "Backspace",
@@ -133,12 +134,12 @@ public sealed class HotkeyManager : IDisposable
             if (text == null) continue;
             if (!Hotkey.TryParse(text, out var hotkey))
             {
-                failures[owner] = "Не удалось разобрать сочетание";
+                failures[owner] = Loc.T("Не удалось разобрать сочетание");
                 continue;
             }
             if (used.ContainsKey(hotkey))
             {
-                failures[owner] = "Это сочетание уже назначено другой группе";
+                failures[owner] = Loc.T("Это сочетание уже назначено другой группе");
                 continue;
             }
 
@@ -156,7 +157,7 @@ public sealed class HotkeyManager : IDisposable
             }
             else
             {
-                failures[owner] = "Сочетание уже занято Windows или другой программой — выберите другое";
+                failures[owner] = Loc.T("Сочетание уже занято Windows или другой программой — выберите другое");
             }
             id++;
         }

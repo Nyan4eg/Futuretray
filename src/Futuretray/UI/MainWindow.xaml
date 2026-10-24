@@ -98,9 +98,9 @@
             </StackPanel>
 
             <Grid Grid.Row="1" Margin="22,4,12,6">
-                <TextBlock Text="Группы" Style="{StaticResource Text.Strong}" VerticalAlignment="Center"/>
+                <TextBlock Text="{ui:T 'Группы'}" Style="{StaticResource Text.Strong}" VerticalAlignment="Center"/>
                 <Button Style="{StaticResource Button.Icon}" Content="&#xE710;" HorizontalAlignment="Right" Width="32" Height="32"
-                        ToolTip="Новая группа (Ctrl+N)" Click="NewGroup_Click"/>
+                        ToolTip="{ui:T 'Новая группа (Ctrl+N)'}" Click="NewGroup_Click"/>
             </Grid>
 
             <ListBox x:Name="GroupList" Grid.Row="2" Margin="10,0,10,0" ItemContainerStyle="{StaticResource NavItem}"
@@ -110,7 +110,7 @@
             <StackPanel Grid.Row="3" Margin="10,8,10,14">
                 <Border Height="1" Background="{DynamicResource Brush.Divider}" Margin="6,0,6,8"/>
                 <Button x:Name="SettingsNav" Style="{StaticResource Button.Subtle}" HorizontalContentAlignment="Left"
-                        Padding="12,8" ui:Ui.Glyph="&#xE713;" Content="Настройки" Click="Settings_Click"/>
+                        Padding="12,8" ui:Ui.Glyph="&#xE713;" Content="{ui:T 'Настройки'}" Click="Settings_Click"/>
             </StackPanel>
         </Grid>
 
@@ -132,15 +132,15 @@
                             </Grid.ColumnDefinitions>
                             <Image Source="{Binding Icon}" Width="64" Height="64" RenderOptions.BitmapScalingMode="HighQuality" VerticalAlignment="Center"/>
                             <StackPanel Grid.Column="1" Margin="14,0,16,0" VerticalAlignment="Center">
-                                <TextBox x:Name="GroupNameBox" Style="{StaticResource TextBox.Title}" ui:Ui.Placeholder="Название группы"
+                                <TextBox x:Name="GroupNameBox" Style="{StaticResource TextBox.Title}" ui:Ui.Placeholder="{ui:T 'Название группы'}"
                                          Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" MaxLength="60"/>
                                 <TextBlock Text="{Binding Items.Count, Converter={StaticResource AppsCount}}" Style="{StaticResource Text.Caption}" Margin="8,0,0,0"/>
                             </StackPanel>
                             <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-                                <Button Style="{StaticResource Button.Accent}" ui:Ui.Glyph="&#xE718;" Content="Закрепить на панели задач"
+                                <Button Style="{StaticResource Button.Accent}" ui:Ui.Glyph="&#xE718;" Content="{ui:T 'Закрепить на панели задач'}"
                                         Click="Pin_Click" Padding="14,6,16,7"/>
-                                <Button Style="{StaticResource Button.Icon}" Content="&#xE768;" Margin="6,0,0,0" ToolTip="Открыть группу" Click="Test_Click"/>
-                                <Button Style="{StaticResource Button.Icon}" Content="&#xE712;" ToolTip="Ещё" Click="More_Click"/>
+                                <Button Style="{StaticResource Button.Icon}" Content="&#xE768;" Margin="6,0,0,0" ToolTip="{ui:T 'Открыть группу'}" Click="Test_Click"/>
+                                <Button Style="{StaticResource Button.Icon}" Content="&#xE712;" ToolTip="{ui:T 'Ещё'}" Click="More_Click"/>
                             </StackPanel>
                         </Grid>
 
@@ -148,12 +148,12 @@
                         <Border x:Name="AppsCard" Style="{StaticResource Card}">
                             <StackPanel>
                                 <Grid Margin="0,0,0,14">
-                                    <TextBlock Text="Приложения" Style="{StaticResource Text.Subtitle}" VerticalAlignment="Center"/>
+                                    <TextBlock Text="{ui:T 'Приложения'}" Style="{StaticResource Text.Subtitle}" VerticalAlignment="Center"/>
                                     <WrapPanel HorizontalAlignment="Right">
-                                        <Button Style="{StaticResource Button.Accent}" ui:Ui.Glyph="&#xE710;" Content="Добавить приложение" Click="AddApp_Click"/>
-                                        <Button Style="{StaticResource Button.Subtle}" ui:Ui.Glyph="&#xE8E5;" Content="Файл" Margin="6,0,0,0" Click="AddFile_Click"/>
-                                        <Button Style="{StaticResource Button.Subtle}" ui:Ui.Glyph="&#xE8B7;" Content="Папка" Click="AddFolder_Click"/>
-                                        <Button Style="{StaticResource Button.Subtle}" ui:Ui.Glyph="&#xE71B;" Content="Ссылка" Click="AddUrl_Click"/>
+                                        <Button Style="{StaticResource Button.Accent}" ui:Ui.Glyph="&#xE710;" Content="{ui:T 'Добавить приложение'}" Click="AddApp_Click"/>
+                                        <Button Style="{StaticResource Button.Subtle}" ui:Ui.Glyph="&#xE8E5;" Content="{ui:T 'Файл'}" Margin="6,0,0,0" Click="AddFile_Click"/>
+                                        <Button Style="{StaticResource Button.Subtle}" ui:Ui.Glyph="&#xE8B7;" Content="{ui:T 'Папка'}" Click="AddFolder_Click"/>
+                                        <Button Style="{StaticResource Button.Subtle}" ui:Ui.Glyph="&#xE71B;" Content="{ui:T 'Ссылка'}" Click="AddUrl_Click"/>
                                     </WrapPanel>
                                 </Grid>
 
@@ -167,12 +167,12 @@
                                         </Grid.ColumnDefinitions>
                                         <TextBlock Text="&#xE8F7;" Style="{StaticResource Text.Glyph}" Foreground="{DynamicResource Brush.AccentForeground}" Margin="0,0,12,0"/>
                                         <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                            <TextBlock Text="Группа следит за папкой — новые файлы и ярлыки появляются здесь сами"/>
+                                            <TextBlock Text="{ui:T 'Группа следит за папкой — новые файлы и ярлыки появляются здесь сами'}"/>
                                             <TextBlock Text="{Binding SourceFolder}" Style="{StaticResource Text.Caption}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"/>
                                         </StackPanel>
                                         <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-                                            <Button Style="{StaticResource Button.Subtle}" Content="Открыть" Click="OpenSourceFolder_Click"/>
-                                            <Button Style="{StaticResource Button.Subtle}" Content="Отвязать" Click="UnlinkFolder_Click"/>
+                                            <Button Style="{StaticResource Button.Subtle}" Content="{ui:T 'Открыть'}" Click="OpenSourceFolder_Click"/>
+                                            <Button Style="{StaticResource Button.Subtle}" Content="{ui:T 'Отвязать'}" Click="UnlinkFolder_Click"/>
                                         </StackPanel>
                                     </Grid>
                                 </Border>
@@ -193,11 +193,11 @@
                                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
                                         <TextBlock Text="&#xE896;" Style="{StaticResource Text.Glyph}" Foreground="{DynamicResource Brush.TextSecondary}" Margin="0,0,10,0"/>
                                         <TextBlock x:Name="DropHintText" Foreground="{DynamicResource Brush.TextSecondary}" VerticalAlignment="Center"
-                                                   Text="Перетащите сюда программы, ярлыки, папки, файлы или ссылки из браузера"/>
+                                                   Text="{ui:T 'Перетащите сюда программы, ярлыки, папки, файлы или ссылки из браузера'}"/>
                                     </StackPanel>
                                 </Grid>
                                 <TextBlock Style="{StaticResource Text.Caption}" Margin="2,10,0,0"
-                                           Text="Порядок меняется перетаскиванием. Delete — удалить выбранное."/>
+                                           Text="{ui:T 'Порядок меняется перетаскиванием. Delete — удалить выбранное.'}"/>
                             </StackPanel>
                         </Border>
 
@@ -209,7 +209,7 @@
                                     <ColumnDefinition Width="*"/>
                                 </Grid.ColumnDefinitions>
                                 <Button Style="{StaticResource Button.Subtle}" Width="76" Height="76" Padding="0" VerticalAlignment="Top"
-                                        ToolTip="Сменить иконку" Click="ItemIcon_Click">
+                                        ToolTip="{ui:T 'Сменить иконку'}" Click="ItemIcon_Click">
                                     <Image Source="{Binding Icon}" Width="48" Height="48" RenderOptions.BitmapScalingMode="HighQuality"/>
                                 </Button>
                                 <StackPanel Grid.Column="1" Margin="18,0,0,0">
@@ -228,38 +228,38 @@
                                             <RowDefinition Height="Auto"/>
                                         </Grid.RowDefinitions>
 
-                                        <TextBlock Text="Название" Style="{StaticResource FieldLabel}"/>
+                                        <TextBlock Text="{ui:T 'Название'}" Style="{StaticResource FieldLabel}"/>
                                         <TextBox Grid.Column="1" Grid.ColumnSpan="2" Margin="0,0,0,8" Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}"/>
 
-                                        <TextBlock Grid.Row="1" Text="Расположение" Style="{StaticResource FieldLabel}"/>
+                                        <TextBlock Grid.Row="1" Text="{ui:T 'Расположение'}" Style="{StaticResource FieldLabel}"/>
                                         <TextBox Grid.Row="1" Grid.Column="1" Margin="0,0,0,8" Text="{Binding Target, UpdateSourceTrigger=LostFocus}"/>
-                                        <Button Grid.Row="1" Grid.Column="2" Content="Обзор…" Margin="8,0,0,8" Click="BrowseTarget_Click"
+                                        <Button Grid.Row="1" Grid.Column="2" Content="{ui:T 'Обзор…'}" Margin="8,0,0,8" Click="BrowseTarget_Click"
                                                 Visibility="{Binding IsPath, Converter={StaticResource BoolVisible}}"/>
 
-                                        <TextBlock Grid.Row="2" Text="Аргументы" Style="{StaticResource FieldLabel}"
+                                        <TextBlock Grid.Row="2" Text="{ui:T 'Аргументы'}" Style="{StaticResource FieldLabel}"
                                                    Visibility="{Binding IsPath, Converter={StaticResource BoolVisible}}"/>
-                                        <TextBox Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="2" Margin="0,0,0,8" ui:Ui.Placeholder="Необязательно"
+                                        <TextBox Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="2" Margin="0,0,0,8" ui:Ui.Placeholder="{ui:T 'Необязательно'}"
                                                  Text="{Binding Arguments, UpdateSourceTrigger=PropertyChanged}"
                                                  Visibility="{Binding IsPath, Converter={StaticResource BoolVisible}}"/>
 
-                                        <TextBlock Grid.Row="3" Text="Рабочая папка" Style="{StaticResource FieldLabel}"
+                                        <TextBlock Grid.Row="3" Text="{ui:T 'Рабочая папка'}" Style="{StaticResource FieldLabel}"
                                                    Visibility="{Binding IsPath, Converter={StaticResource BoolVisible}}"/>
-                                        <TextBox Grid.Row="3" Grid.Column="1" Grid.ColumnSpan="2" Margin="0,0,0,8" ui:Ui.Placeholder="По умолчанию — папка программы"
+                                        <TextBox Grid.Row="3" Grid.Column="1" Grid.ColumnSpan="2" Margin="0,0,0,8" ui:Ui.Placeholder="{ui:T 'По умолчанию — папка программы'}"
                                                  Text="{Binding WorkingDirectory, UpdateSourceTrigger=PropertyChanged}"
                                                  Visibility="{Binding IsPath, Converter={StaticResource BoolVisible}}"/>
 
-                                        <TextBlock Grid.Row="4" Text="От имени администратора" Style="{StaticResource FieldLabel}"
+                                        <TextBlock Grid.Row="4" Text="{ui:T 'От имени администратора'}" Style="{StaticResource FieldLabel}"
                                                    Visibility="{Binding IsPath, Converter={StaticResource BoolVisible}}"/>
                                         <CheckBox Grid.Row="4" Grid.Column="1" Style="{StaticResource Toggle}" Margin="0,2,0,6" HorizontalAlignment="Left"
                                                   IsChecked="{Binding RunAsAdmin}" Visibility="{Binding IsPath, Converter={StaticResource BoolVisible}}"/>
                                     </Grid>
                                     <WrapPanel Margin="-12,10,0,0">
-                                        <Button Style="{StaticResource Button.Subtle}" ui:Ui.Glyph="&#xE768;" Content="Запустить" Click="RunItem_Click"/>
-                                        <Button Style="{StaticResource Button.Subtle}" ui:Ui.Glyph="&#xE8B9;" Content="Сменить иконку" Click="ItemIcon_Click"/>
-                                        <Button Style="{StaticResource Button.Subtle}" ui:Ui.Glyph="&#xE72C;" Content="Вернуть иконку" Click="ResetItemIcon_Click"
+                                        <Button Style="{StaticResource Button.Subtle}" ui:Ui.Glyph="&#xE768;" Content="{ui:T 'Запустить'}" Click="RunItem_Click"/>
+                                        <Button Style="{StaticResource Button.Subtle}" ui:Ui.Glyph="&#xE8B9;" Content="{ui:T 'Сменить иконку'}" Click="ItemIcon_Click"/>
+                                        <Button Style="{StaticResource Button.Subtle}" ui:Ui.Glyph="&#xE72C;" Content="{ui:T 'Вернуть иконку'}" Click="ResetItemIcon_Click"
                                                 Visibility="{Binding CustomIconPath, Converter={StaticResource NullCollapsed}}"/>
-                                        <Button Style="{StaticResource Button.Subtle}" ui:Ui.Glyph="&#xE838;" Content="Открыть расположение" Click="OpenItemLocation_Click"/>
-                                        <Button Style="{StaticResource Button.Danger}" ui:Ui.Glyph="&#xE74D;" Content="Удалить" Click="RemoveItem_Click"/>
+                                        <Button Style="{StaticResource Button.Subtle}" ui:Ui.Glyph="&#xE838;" Content="{ui:T 'Открыть расположение'}" Click="OpenItemLocation_Click"/>
+                                        <Button Style="{StaticResource Button.Danger}" ui:Ui.Glyph="&#xE74D;" Content="{ui:T 'Удалить'}" Click="RemoveItem_Click"/>
                                     </WrapPanel>
                                 </StackPanel>
                             </Grid>
@@ -274,9 +274,9 @@
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
                                     <StackPanel VerticalAlignment="Center" Margin="0,0,16,0">
-                                        <TextBlock Text="Сочетание клавиш"/>
+                                        <TextBlock Text="{ui:T 'Сочетание клавиш'}"/>
                                         <TextBlock Style="{StaticResource Text.Caption}"
-                                                   Text="Открывает группу у курсора из любой программы. Дальше — стрелки, цифры 1–9 или набор названия."/>
+                                                   Text="{ui:T 'Открывает группу у курсора из любой программы. Дальше — стрелки, цифры 1–9 или набор названия.'}"/>
                                     </StackPanel>
                                     <ui:HotkeyBox Grid.Column="1" Hotkey="{Binding Hotkey}"/>
                                 </Grid>
@@ -288,7 +288,7 @@
                         <!-- Внешний вид -->
                         <Border Style="{StaticResource Card}">
                             <StackPanel>
-                                <TextBlock Text="Внешний вид" Style="{StaticResource Text.Subtitle}"/>
+                                <TextBlock Text="{ui:T 'Внешний вид'}" Style="{StaticResource Text.Subtitle}"/>
 
                                 <Grid Style="{StaticResource SettingRow}">
                                     <Grid.ColumnDefinitions>
@@ -296,13 +296,13 @@
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
                                     <StackPanel VerticalAlignment="Center" Margin="0,0,16,0">
-                                        <TextBlock Text="Цвет группы"/>
-                                        <TextBlock Text="Подложка значка и оттенок всплывающего окна" Style="{StaticResource Text.Caption}"/>
+                                        <TextBlock Text="{ui:T 'Цвет группы'}"/>
+                                        <TextBlock Text="{ui:T 'Подложка значка и оттенок всплывающего окна'}" Style="{StaticResource Text.Caption}"/>
                                     </StackPanel>
                                     <StackPanel Grid.Column="1" Orientation="Horizontal">
                                         <WrapPanel x:Name="SwatchPanel" MaxWidth="440" VerticalAlignment="Center" Margin="0,6,4,0"/>
                                         <TextBox x:Name="HexBox" Width="96" VerticalAlignment="Center" MaxLength="7"
-                                                 LostFocus="HexBox_LostFocus" KeyDown="HexBox_KeyDown" ToolTip="Свой цвет в формате #RRGGBB"/>
+                                                 LostFocus="HexBox_LostFocus" KeyDown="HexBox_KeyDown" ToolTip="{ui:T 'Свой цвет в формате #RRGGBB'}"/>
                                     </StackPanel>
                                 </Grid>
                                 <Border Style="{StaticResource RowDivider}"/>
@@ -313,19 +313,19 @@
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
                                     <StackPanel VerticalAlignment="Center" Margin="0,0,16,0">
-                                        <TextBlock Text="Значок на панели задач"/>
-                                        <TextBlock Text="«Авто» собирает значок из первых четырёх приложений" Style="{StaticResource Text.Caption}"/>
+                                        <TextBlock Text="{ui:T 'Значок на панели задач'}"/>
+                                        <TextBlock Text="{ui:T '«Авто» собирает значок из первых четырёх приложений'}" Style="{StaticResource Text.Caption}"/>
                                     </StackPanel>
                                     <StackPanel Grid.Column="1" Orientation="Horizontal">
-                                        <CheckBox Style="{StaticResource Toggle}" Content="Подложка" Margin="0,0,16,0"
+                                        <CheckBox Style="{StaticResource Toggle}" Content="{ui:T 'Подложка'}" Margin="0,0,16,0"
                                                   IsChecked="{Binding ShowIconBackground}"/>
                                         <Border Style="{StaticResource Segments}">
                                             <StackPanel Orientation="Horizontal">
-                                                <RadioButton Style="{StaticResource Segment}" Content="Авто"
+                                                <RadioButton Style="{StaticResource Segment}" Content="{ui:T 'Авто'}"
                                                              IsChecked="{Binding IconMode, Converter={StaticResource EnumBool}, ConverterParameter=Auto}"/>
-                                                <RadioButton Style="{StaticResource Segment}" Content="Приложение"
+                                                <RadioButton Style="{StaticResource Segment}" Content="{ui:T 'Приложение'}"
                                                              IsChecked="{Binding IconMode, Converter={StaticResource EnumBool}, ConverterParameter=Item}"/>
-                                                <RadioButton x:Name="CustomIconRadio" Style="{StaticResource Segment}" Content="Своя картинка"
+                                                <RadioButton x:Name="CustomIconRadio" Style="{StaticResource Segment}" Content="{ui:T 'Своя картинка'}"
                                                              IsChecked="{Binding IconMode, Converter={StaticResource EnumBool}, ConverterParameter=Custom}"/>
                                             </StackPanel>
                                         </Border>
@@ -335,7 +335,7 @@
                                 <StackPanel x:Name="CustomIconPanel" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0" Visibility="Collapsed">
                                     <TextBlock x:Name="CustomIconName" Style="{StaticResource Text.Caption}" VerticalAlignment="Center" Margin="0,0,10,0"
                                                TextTrimming="CharacterEllipsis" MaxWidth="320" TextWrapping="NoWrap"/>
-                                    <Button Content="Выбрать картинку…" ui:Ui.Glyph="&#xE8B9;" Click="PickGroupIcon_Click"/>
+                                    <Button Content="{ui:T 'Выбрать картинку…'}" ui:Ui.Glyph="&#xE8B9;" Click="PickGroupIcon_Click"/>
                                 </StackPanel>
                                 <Border Style="{StaticResource RowDivider}"/>
 
@@ -344,14 +344,14 @@
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Text="Размер значков" VerticalAlignment="Center"/>
+                                    <TextBlock Text="{ui:T 'Размер значков'}" VerticalAlignment="Center"/>
                                     <Border Grid.Column="1" Style="{StaticResource Segments}">
                                         <StackPanel Orientation="Horizontal">
-                                            <RadioButton Style="{StaticResource Segment}" Content="Маленькие"
+                                            <RadioButton Style="{StaticResource Segment}" Content="{ui:T 'Маленькие'}"
                                                          IsChecked="{Binding TileSize, Converter={StaticResource EnumBool}, ConverterParameter=Small}"/>
-                                            <RadioButton Style="{StaticResource Segment}" Content="Средние"
+                                            <RadioButton Style="{StaticResource Segment}" Content="{ui:T 'Средние'}"
                                                          IsChecked="{Binding TileSize, Converter={StaticResource EnumBool}, ConverterParameter=Medium}"/>
-                                            <RadioButton Style="{StaticResource Segment}" Content="Крупные"
+                                            <RadioButton Style="{StaticResource Segment}" Content="{ui:T 'Крупные'}"
                                                          IsChecked="{Binding TileSize, Converter={StaticResource EnumBool}, ConverterParameter=Large}"/>
                                         </StackPanel>
                                     </Border>
@@ -364,8 +364,8 @@
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
                                     <StackPanel VerticalAlignment="Center">
-                                        <TextBlock Text="Подписи под значками"/>
-                                        <TextBlock Text="Без подписей название видно во всплывающей подсказке" Style="{StaticResource Text.Caption}"/>
+                                        <TextBlock Text="{ui:T 'Подписи под значками'}"/>
+                                        <TextBlock Text="{ui:T 'Без подписей название видно во всплывающей подсказке'}" Style="{StaticResource Text.Caption}"/>
                                     </StackPanel>
                                     <CheckBox Grid.Column="1" Style="{StaticResource Toggle}" IsChecked="{Binding ShowLabels}"/>
                                 </Grid>
@@ -377,7 +377,7 @@
                                         <ColumnDefinition Width="Auto"/>
                                         <ColumnDefinition Width="56"/>
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Text="Колонок в окне" VerticalAlignment="Center"/>
+                                    <TextBlock Text="{ui:T 'Колонок в окне'}" VerticalAlignment="Center"/>
                                     <Slider Grid.Column="1" Width="220" Minimum="0" Maximum="12" SmallChange="1" LargeChange="1"
                                             IsSnapToTickEnabled="True" TickFrequency="1"
                                             Value="{Binding Columns, Converter={StaticResource IntDouble}}"/>
@@ -392,16 +392,16 @@
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
                                     <StackPanel VerticalAlignment="Center" Margin="0,0,16,0">
-                                        <TextBlock Text="Фон окна"/>
-                                        <TextBlock Text="Акрил и Mica работают в Windows 11 22H2 и новее" Style="{StaticResource Text.Caption}"/>
+                                        <TextBlock Text="{ui:T 'Фон окна'}"/>
+                                        <TextBlock Text="{ui:T 'Акрил и Mica работают в Windows 11 22H2 и новее'}" Style="{StaticResource Text.Caption}"/>
                                     </StackPanel>
                                     <Border Grid.Column="1" Style="{StaticResource Segments}">
                                         <StackPanel Orientation="Horizontal">
-                                            <RadioButton Style="{StaticResource Segment}" Content="Акрил"
+                                            <RadioButton Style="{StaticResource Segment}" Content="{ui:T 'Акрил'}"
                                                          IsChecked="{Binding Backdrop, Converter={StaticResource EnumBool}, ConverterParameter=Acrylic}"/>
                                             <RadioButton Style="{StaticResource Segment}" Content="Mica"
                                                          IsChecked="{Binding Backdrop, Converter={StaticResource EnumBool}, ConverterParameter=Mica}"/>
-                                            <RadioButton Style="{StaticResource Segment}" Content="Сплошной"
+                                            <RadioButton Style="{StaticResource Segment}" Content="{ui:T 'Сплошной'}"
                                                          IsChecked="{Binding Backdrop, Converter={StaticResource EnumBool}, ConverterParameter=Solid}"/>
                                         </StackPanel>
                                     </Border>
@@ -414,7 +414,7 @@
                                         <ColumnDefinition Width="Auto"/>
                                         <ColumnDefinition Width="56"/>
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Text="Оттенок окна цветом группы" VerticalAlignment="Center"/>
+                                    <TextBlock Text="{ui:T 'Оттенок окна цветом группы'}" VerticalAlignment="Center"/>
                                     <Slider Grid.Column="1" Width="220" Minimum="0" Maximum="0.6" SmallChange="0.02" LargeChange="0.05"
                                             Value="{Binding TintOpacity}"/>
                                     <TextBlock Grid.Column="2" Text="{Binding TintOpacity, Converter={StaticResource Percent}}" VerticalAlignment="Center"
@@ -428,8 +428,8 @@
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
                                     <StackPanel VerticalAlignment="Center">
-                                        <TextBlock Text="Закрывать окно после запуска"/>
-                                        <TextBlock Text="Ctrl+клик — не закрывать окно группы. Shift+клик или средняя кнопка — открыть ещё одну копию программы" Style="{StaticResource Text.Caption}" TextWrapping="Wrap"/>
+                                        <TextBlock Text="{ui:T 'Закрывать окно после запуска'}"/>
+                                        <TextBlock Text="{ui:T 'Ctrl+клик — не закрывать окно группы. Shift+клик или средняя кнопка — открыть ещё одну копию программы'}" Style="{StaticResource Text.Caption}" TextWrapping="Wrap"/>
                                     </StackPanel>
                                     <CheckBox Grid.Column="1" Style="{StaticResource Toggle}" IsChecked="{Binding CloseAfterLaunch}"/>
                                 </Grid>
@@ -445,9 +445,9 @@
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
                                     <StackPanel Margin="0,0,16,0">
-                                        <TextBlock Text="Трей на рабочем столе" Style="{StaticResource Text.Subtitle}"/>
+                                        <TextBlock Text="{ui:T 'Трей на рабочем столе'}" Style="{StaticResource Text.Subtitle}"/>
                                         <TextBlock Style="{StaticResource Text.Caption}" Margin="0,4,0,0"
-                                                   Text="Группа всегда под рукой: отдельная панель у края экрана, без клика по панели задач. Правой кнопкой по трею — быстрые настройки."/>
+                                                   Text="{ui:T 'Группа всегда под рукой: отдельная панель у края экрана, без клика по панели задач. Правой кнопкой по трею — быстрые настройки.'}"/>
                                     </StackPanel>
                                     <CheckBox Grid.Column="1" Style="{StaticResource Toggle}" IsChecked="{Binding DockEnabled}" VerticalAlignment="Top" Margin="0,4,0,0"/>
                                 </Grid>
@@ -459,18 +459,18 @@
                                             <ColumnDefinition Width="*"/>
                                             <ColumnDefinition Width="Auto"/>
                                         </Grid.ColumnDefinitions>
-                                        <TextBlock Text="Положение" VerticalAlignment="Center"/>
+                                        <TextBlock Text="{ui:T 'Положение'}" VerticalAlignment="Center"/>
                                         <Border Grid.Column="1" Style="{StaticResource Segments}">
                                             <StackPanel Orientation="Horizontal">
-                                                <RadioButton Style="{StaticResource Segment}" Content="Слева"
+                                                <RadioButton Style="{StaticResource Segment}" Content="{ui:T 'Слева'}"
                                                              IsChecked="{Binding DockEdge, Converter={StaticResource EnumBool}, ConverterParameter=Left}"/>
-                                                <RadioButton Style="{StaticResource Segment}" Content="Сверху"
+                                                <RadioButton Style="{StaticResource Segment}" Content="{ui:T 'Сверху'}"
                                                              IsChecked="{Binding DockEdge, Converter={StaticResource EnumBool}, ConverterParameter=Top}"/>
-                                                <RadioButton Style="{StaticResource Segment}" Content="Справа"
+                                                <RadioButton Style="{StaticResource Segment}" Content="{ui:T 'Справа'}"
                                                              IsChecked="{Binding DockEdge, Converter={StaticResource EnumBool}, ConverterParameter=Right}"/>
-                                                <RadioButton Style="{StaticResource Segment}" Content="Снизу"
+                                                <RadioButton Style="{StaticResource Segment}" Content="{ui:T 'Снизу'}"
                                                              IsChecked="{Binding DockEdge, Converter={StaticResource EnumBool}, ConverterParameter=Bottom}"/>
-                                                <RadioButton Style="{StaticResource Segment}" Content="Свободно"
+                                                <RadioButton Style="{StaticResource Segment}" Content="{ui:T 'Свободно'}"
                                                              IsChecked="{Binding DockEdge, Converter={StaticResource EnumBool}, ConverterParameter=Free}"/>
                                             </StackPanel>
                                         </Border>
@@ -478,7 +478,7 @@
 
                                     <TextBlock Style="{StaticResource Text.Caption}" Margin="0,10,0,0" HorizontalAlignment="Right" TextAlignment="Right"
                                                Visibility="{Binding DockEdge, Converter={StaticResource EnumVisible}, ConverterParameter=Free}"
-                                               Text="Перетаскивайте трей за ручку. Отпустите его у края экрана — он прилипнет к этому краю."/>
+                                               Text="{ui:T 'Перетаскивайте трей за ручку. Отпустите его у края экрана — он прилипнет к этому краю.'}"/>
 
                                     <StackPanel Visibility="{Binding DockEdge, Converter={StaticResource EnumCollapsed}, ConverterParameter=Free}">
                                         <Border Style="{StaticResource RowDivider}"/>
@@ -487,14 +487,14 @@
                                                 <ColumnDefinition Width="*"/>
                                                 <ColumnDefinition Width="Auto"/>
                                             </Grid.ColumnDefinitions>
-                                            <TextBlock Text="Выравнивание вдоль края" VerticalAlignment="Center"/>
+                                            <TextBlock Text="{ui:T 'Выравнивание вдоль края'}" VerticalAlignment="Center"/>
                                             <Border Grid.Column="1" Style="{StaticResource Segments}">
                                                 <StackPanel Orientation="Horizontal">
-                                                    <RadioButton Style="{StaticResource Segment}" Content="В начале"
+                                                    <RadioButton Style="{StaticResource Segment}" Content="{ui:T 'В начале'}"
                                                                  IsChecked="{Binding DockAlign, Converter={StaticResource EnumBool}, ConverterParameter=Start}"/>
-                                                    <RadioButton Style="{StaticResource Segment}" Content="По центру"
+                                                    <RadioButton Style="{StaticResource Segment}" Content="{ui:T 'По центру'}"
                                                                  IsChecked="{Binding DockAlign, Converter={StaticResource EnumBool}, ConverterParameter=Center}"/>
-                                                    <RadioButton Style="{StaticResource Segment}" Content="В конце"
+                                                    <RadioButton Style="{StaticResource Segment}" Content="{ui:T 'В конце'}"
                                                                  IsChecked="{Binding DockAlign, Converter={StaticResource EnumBool}, ConverterParameter=End}"/>
                                                 </StackPanel>
                                             </Border>
@@ -507,7 +507,7 @@
                                                     <ColumnDefinition Width="*"/>
                                                     <ColumnDefinition Width="Auto"/>
                                                 </Grid.ColumnDefinitions>
-                                                <TextBlock Text="Монитор" VerticalAlignment="Center"/>
+                                                <TextBlock Text="{ui:T 'Монитор'}" VerticalAlignment="Center"/>
                                                 <Border Grid.Column="1" Style="{StaticResource Segments}">
                                                     <StackPanel x:Name="DockMonitorPanel" Orientation="Horizontal"/>
                                                 </Border>
@@ -522,9 +522,9 @@
                                             <ColumnDefinition Width="Auto"/>
                                         </Grid.ColumnDefinitions>
                                         <StackPanel VerticalAlignment="Center" Margin="0,0,16,0">
-                                            <TextBlock Text="Поверх всех окон"/>
+                                            <TextBlock Text="{ui:T 'Поверх всех окон'}"/>
                                             <TextBlock Style="{StaticResource Text.Caption}"
-                                                       Text="Иначе трей живёт на рабочем столе под окнами и не пропадает по Win+D. В полноэкранных играх и видео трей сам уходит назад."/>
+                                                       Text="{ui:T 'Иначе трей живёт на рабочем столе под окнами и не пропадает по Win+D. В полноэкранных играх и видео трей сам уходит назад.'}"/>
                                         </StackPanel>
                                         <CheckBox Grid.Column="1" Style="{StaticResource Toggle}" IsChecked="{Binding DockTopmost}"/>
                                     </Grid>
@@ -537,9 +537,9 @@
                                                 <ColumnDefinition Width="Auto"/>
                                             </Grid.ColumnDefinitions>
                                             <StackPanel VerticalAlignment="Center" Margin="0,0,16,0">
-                                                <TextBlock Text="Прятать за край экрана"/>
+                                                <TextBlock Text="{ui:T 'Прятать за край экрана'}"/>
                                                 <TextBlock Style="{StaticResource Text.Caption}"
-                                                           Text="Трей уезжает за край и выезжает, когда вы подводите к нему мышь"/>
+                                                           Text="{ui:T 'Трей уезжает за край и выезжает, когда вы подводите к нему мышь'}"/>
                                             </StackPanel>
                                             <CheckBox Grid.Column="1" Style="{StaticResource Toggle}" IsChecked="{Binding DockAutoHide}"/>
                                         </Grid>
@@ -550,9 +550,9 @@
                                                 <ColumnDefinition Width="Auto"/>
                                             </Grid.ColumnDefinitions>
                                             <StackPanel VerticalAlignment="Center" Margin="0,0,16,0">
-                                                <TextBlock Text="Резервировать место на экране"/>
+                                                <TextBlock Text="{ui:T 'Резервировать место на экране'}"/>
                                                 <TextBlock Style="{StaticResource Text.Caption}"
-                                                           Text="Как панель задач: развёрнутые окна не будут заходить под трей. Не сочетается с автоскрытием."/>
+                                                           Text="{ui:T 'Как панель задач: развёрнутые окна не будут заходить под трей. Не сочетается с автоскрытием.'}"/>
                                             </StackPanel>
                                             <CheckBox Grid.Column="1" Style="{StaticResource Toggle}" IsChecked="{Binding DockReserveSpace}"/>
                                         </Grid>
@@ -564,7 +564,7 @@
                         <!-- Предпросмотр -->
                         <Border Style="{StaticResource Card}">
                             <StackPanel>
-                                <TextBlock Text="Предпросмотр" Style="{StaticResource Text.Subtitle}" Margin="0,0,0,14"/>
+                                <TextBlock Text="{ui:T 'Предпросмотр'}" Style="{StaticResource Text.Subtitle}" Margin="0,0,0,14"/>
                                 <Grid MinHeight="300" ClipToBounds="True">
                                     <Border CornerRadius="8" Background="{DynamicResource Brush.Wallpaper}"/>
                                     <Grid HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="20,24,20,64">
@@ -605,7 +605,7 @@
                 <!-- Настройки -->
                 <ScrollViewer x:Name="SettingsScroll" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
                     <StackPanel x:Name="SettingsPanel" Margin="36,28,36,40" MaxWidth="980">
-                        <TextBlock Text="Настройки" Style="{StaticResource Text.Title}" Margin="0,0,0,22"/>
+                        <TextBlock Text="{ui:T 'Настройки'}" Style="{StaticResource Text.Title}" Margin="0,0,0,22"/>
 
                         <Border Style="{StaticResource Card}">
                             <Grid>
@@ -614,16 +614,16 @@
                                     <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
                                 <StackPanel VerticalAlignment="Center" Margin="0,0,16,0">
-                                    <TextBlock Text="Тема"/>
-                                    <TextBlock Text="«Системная» следует настройкам Windows: окно редактора — теме приложений, окна групп — теме панели задач" Style="{StaticResource Text.Caption}"/>
+                                    <TextBlock Text="{ui:T 'Тема'}"/>
+                                    <TextBlock Text="{ui:T '«Системная» следует настройкам Windows: окно редактора — теме приложений, окна групп — теме панели задач'}" Style="{StaticResource Text.Caption}"/>
                                 </StackPanel>
                                 <Border Grid.Column="1" Style="{StaticResource Segments}">
                                     <StackPanel Orientation="Horizontal">
-                                        <RadioButton Style="{StaticResource Segment}" Content="Системная"
+                                        <RadioButton Style="{StaticResource Segment}" Content="{ui:T 'Системная'}"
                                                      IsChecked="{Binding Theme, Converter={StaticResource EnumBool}, ConverterParameter=System}"/>
-                                        <RadioButton Style="{StaticResource Segment}" Content="Светлая"
+                                        <RadioButton Style="{StaticResource Segment}" Content="{ui:T 'Светлая'}"
                                                      IsChecked="{Binding Theme, Converter={StaticResource EnumBool}, ConverterParameter=Light}"/>
-                                        <RadioButton Style="{StaticResource Segment}" Content="Тёмная"
+                                        <RadioButton Style="{StaticResource Segment}" Content="{ui:T 'Тёмная'}"
                                                      IsChecked="{Binding Theme, Converter={StaticResource EnumBool}, ConverterParameter=Dark}"/>
                                     </StackPanel>
                                 </Border>
@@ -637,8 +637,31 @@
                                     <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
                                 <StackPanel VerticalAlignment="Center" Margin="0,0,16,0">
-                                    <TextBlock Text="Запускать вместе с Windows"/>
-                                    <TextBlock Text="Futuretray тихо ждёт в фоне, и группы открываются мгновенно — даже первый раз после включения ПК" Style="{StaticResource Text.Caption}"/>
+                                    <TextBlock Text="{ui:T 'Язык'}"/>
+                                    <TextBlock Text="{ui:T 'Язык интерфейса Futuretray. «Как в Windows» — русский для русской Windows, иначе английский.'}" Style="{StaticResource Text.Caption}"/>
+                                </StackPanel>
+                                <Border Grid.Column="1" Style="{StaticResource Segments}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <RadioButton Style="{StaticResource Segment}" Content="{ui:T 'Как в Windows'}"
+                                                     IsChecked="{Binding Language, Converter={StaticResource EnumBool}, ConverterParameter=Auto}"/>
+                                        <RadioButton Style="{StaticResource Segment}" Content="Русский"
+                                                     IsChecked="{Binding Language, Converter={StaticResource EnumBool}, ConverterParameter=Russian}"/>
+                                        <RadioButton Style="{StaticResource Segment}" Content="English"
+                                                     IsChecked="{Binding Language, Converter={StaticResource EnumBool}, ConverterParameter=English}"/>
+                                    </StackPanel>
+                                </Border>
+                            </Grid>
+                        </Border>
+
+                        <Border Style="{StaticResource Card}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel VerticalAlignment="Center" Margin="0,0,16,0">
+                                    <TextBlock Text="{ui:T 'Запускать вместе с Windows'}"/>
+                                    <TextBlock Text="{ui:T 'Futuretray тихо ждёт в фоне, и группы открываются мгновенно — даже первый раз после включения ПК'}" Style="{StaticResource Text.Caption}"/>
                                 </StackPanel>
                                 <CheckBox Grid.Column="1" Style="{StaticResource Toggle}" IsChecked="{Binding RunAtStartup}"/>
                             </Grid>
@@ -651,8 +674,8 @@
                                     <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
                                 <StackPanel VerticalAlignment="Center" Margin="0,0,16,0">
-                                    <TextBlock Text="Значок в области уведомлений"/>
-                                    <TextBlock Text="Быстрый доступ к редактору и группам из трея" Style="{StaticResource Text.Caption}"/>
+                                    <TextBlock Text="{ui:T 'Значок в области уведомлений'}"/>
+                                    <TextBlock Text="{ui:T 'Быстрый доступ к редактору и группам из трея'}" Style="{StaticResource Text.Caption}"/>
                                 </StackPanel>
                                 <CheckBox Grid.Column="1" Style="{StaticResource Toggle}" IsChecked="{Binding ShowTrayIcon}"/>
                             </Grid>
@@ -665,9 +688,9 @@
                                     <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
                                 <StackPanel VerticalAlignment="Center" Margin="0,0,16,0">
-                                    <TextBlock Text="Переключаться на уже открытую программу"/>
+                                    <TextBlock Text="{ui:T 'Переключаться на уже открытую программу'}"/>
                                     <TextBlock Style="{StaticResource Text.Caption}"
-                                               Text="Как на панели задач: клик по запущенной программе показывает её окно, повторный — сворачивает, при нескольких окнах — перебирает их. Чёрточка под значком — программа открыта, длинная — активна. Shift+клик всегда запускает новую копию."/>
+                                               Text="{ui:T 'Как на панели задач: клик по запущенной программе показывает её окно, повторный — сворачивает, при нескольких окнах — перебирает их. Чёрточка под значком — программа открыта, длинная — активна. Shift+клик всегда запускает новую копию.'}"/>
                                 </StackPanel>
                                 <CheckBox Grid.Column="1" Style="{StaticResource Toggle}" IsChecked="{Binding SwitchToRunning}"/>
                             </Grid>
@@ -681,9 +704,9 @@
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
                                     <StackPanel VerticalAlignment="Center" Margin="0,0,16,0">
-                                        <TextBlock Text="Поиск по всем группам"/>
+                                        <TextBlock Text="{ui:T 'Поиск по всем группам'}"/>
                                         <TextBlock Style="{StaticResource Text.Caption}"
-                                                   Text="Сочетание открывает строку поиска: набрали пару букв — Enter. Ещё — в меню значка в трее."/>
+                                                   Text="{ui:T 'Сочетание открывает строку поиска: набрали пару букв — Enter. Ещё — в меню значка в трее.'}"/>
                                     </StackPanel>
                                     <ui:HotkeyBox Grid.Column="1" Hotkey="{Binding SearchHotkey}"/>
                                 </Grid>
@@ -699,9 +722,9 @@
                                     <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
                                 <StackPanel VerticalAlignment="Center" Margin="0,0,16,0">
-                                    <TextBlock Text="Значки сайтов для ссылок"/>
+                                    <TextBlock Text="{ui:T 'Значки сайтов для ссылок'}"/>
                                     <TextBlock Style="{StaticResource Text.Caption}"
-                                               Text="Futuretray один раз заглядывает на сам сайт за его значком и хранит его у вас. Без этого у ссылок значок браузера."/>
+                                               Text="{ui:T 'Futuretray один раз заглядывает на сам сайт за его значком и хранит его у вас. Без этого у ссылок значок браузера.'}"/>
                                 </StackPanel>
                                 <CheckBox Grid.Column="1" Style="{StaticResource Toggle}" IsChecked="{Binding DownloadFavicons}"/>
                             </Grid>
@@ -715,9 +738,9 @@
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
                                     <StackPanel VerticalAlignment="Center" Margin="0,0,16,0">
-                                        <TextBlock Text="Проверять обновления автоматически"/>
+                                        <TextBlock Text="{ui:T 'Проверять обновления автоматически'}"/>
                                         <TextBlock Style="{StaticResource Text.Caption}"
-                                                   Text="Futuretray заглядывает в GitHub Releases пару раз в день и предлагает обновиться в один клик"/>
+                                                   Text="{ui:T 'Futuretray заглядывает в GitHub Releases пару раз в день и предлагает обновиться в один клик'}"/>
                                     </StackPanel>
                                     <CheckBox Grid.Column="1" Style="{StaticResource Toggle}"
                                               IsChecked="{Binding DataContext.CheckUpdates, ElementName=SettingsPanel}"/>
@@ -734,13 +757,13 @@
                                         <TextBlock Text="{Binding Status}" VerticalAlignment="Center" TextWrapping="Wrap"/>
                                     </StackPanel>
                                     <StackPanel Grid.Column="1" Orientation="Horizontal">
-                                        <Button Style="{StaticResource Button.Subtle}" Content="Что нового" Margin="0,0,6,0" Click="ReleaseNotes_Click"
+                                        <Button Style="{StaticResource Button.Subtle}" Content="{ui:T 'Что нового'}" Margin="0,0,6,0" Click="ReleaseNotes_Click"
                                                 Visibility="{Binding Available, Converter={StaticResource NullCollapsed}}"/>
-                                        <Button Style="{StaticResource Button.Accent}" ui:Ui.Glyph="&#xE896;" Margin="0,0,6,0" Click="InstallUpdate_Click"
-                                                Content="{Binding Available.Version}" ContentStringFormat="Обновить до {0}"
+                                        <Button x:Name="InstallUpdateButton" Style="{StaticResource Button.Accent}" ui:Ui.Glyph="&#xE896;" Margin="0,0,6,0" Click="InstallUpdate_Click"
+                                                Content="{Binding Available.Version}"
                                                 IsEnabled="{Binding Busy, Converter={StaticResource InverseBool}}"
                                                 Visibility="{Binding Available, Converter={StaticResource NullCollapsed}}"/>
-                                        <Button Content="Проверить сейчас" Click="CheckUpdates_Click"
+                                        <Button Content="{ui:T 'Проверить сейчас'}" Click="CheckUpdates_Click"
                                                 IsEnabled="{Binding Busy, Converter={StaticResource InverseBool}}"/>
                                     </StackPanel>
                                 </Grid>
@@ -749,25 +772,25 @@
 
                         <Border Style="{StaticResource Card}">
                             <StackPanel>
-                                <TextBlock Text="Что-то работает не так?"/>
+                                <TextBlock Text="{ui:T 'Что-то работает не так?'}"/>
                                 <TextBlock Style="{StaticResource Text.Caption}"
-                                           Text="«Собрать отчёт» сохранит на рабочий стол zip с журналом ошибок, настройками групп (там видны пути к вашим программам) и сведениями о системе — отправьте его разработчику."/>
+                                           Text="{ui:T '«Собрать отчёт» сохранит на рабочий стол zip с журналом ошибок, настройками групп (там видны пути к вашим программам) и сведениями о системе — отправьте его разработчику.'}"/>
                                 <WrapPanel Margin="0,12,0,0">
-                                    <Button ui:Ui.Glyph="&#xE9D9;" Content="Собрать отчёт" Click="CreateReport_Click" Margin="0,0,8,0"/>
-                                    <Button Style="{StaticResource Button.Subtle}" ui:Ui.Glyph="&#xE939;" Content="Сообщить о проблеме на GitHub" Click="ReportIssue_Click"/>
+                                    <Button ui:Ui.Glyph="&#xE9D9;" Content="{ui:T 'Собрать отчёт'}" Click="CreateReport_Click" Margin="0,0,8,0"/>
+                                    <Button Style="{StaticResource Button.Subtle}" ui:Ui.Glyph="&#xE939;" Content="{ui:T 'Сообщить о проблеме на GitHub'}" Click="ReportIssue_Click"/>
                                 </WrapPanel>
                             </StackPanel>
                         </Border>
 
                         <Border Style="{StaticResource Card}">
                             <StackPanel>
-                                <TextBlock Text="Резервная копия"/>
-                                <TextBlock Text="Сохраните группы в файл, чтобы перенести их на другой компьютер" Style="{StaticResource Text.Caption}"/>
+                                <TextBlock Text="{ui:T 'Резервная копия'}"/>
+                                <TextBlock Text="{ui:T 'Сохраните группы в файл, чтобы перенести их на другой компьютер'}" Style="{StaticResource Text.Caption}"/>
                                 <WrapPanel Margin="0,12,0,0">
-                                    <Button ui:Ui.Glyph="&#xE898;" Content="Экспорт групп…" Click="Export_Click" Margin="0,0,8,0"/>
-                                    <Button ui:Ui.Glyph="&#xE896;" Content="Импорт групп…" Click="Import_Click" Margin="0,0,8,0"/>
-                                    <Button ui:Ui.Glyph="&#xE8B5;" Content="Из Taskbar Groups…" Click="ImportTaskbarGroups_Click" Margin="0,0,8,0"/>
-                                    <Button Style="{StaticResource Button.Subtle}" ui:Ui.Glyph="&#xE838;" Content="Папка с данными" Click="OpenDataFolder_Click"/>
+                                    <Button ui:Ui.Glyph="&#xE898;" Content="{ui:T 'Экспорт групп…'}" Click="Export_Click" Margin="0,0,8,0"/>
+                                    <Button ui:Ui.Glyph="&#xE896;" Content="{ui:T 'Импорт групп…'}" Click="Import_Click" Margin="0,0,8,0"/>
+                                    <Button ui:Ui.Glyph="&#xE8B5;" Content="{ui:T 'Из Taskbar Groups…'}" Click="ImportTaskbarGroups_Click" Margin="0,0,8,0"/>
+                                    <Button Style="{StaticResource Button.Subtle}" ui:Ui.Glyph="&#xE838;" Content="{ui:T 'Папка с данными'}" Click="OpenDataFolder_Click"/>
                                 </WrapPanel>
                             </StackPanel>
                         </Border>
@@ -784,7 +807,7 @@
                                     <TextBlock Text="Futuretray" Style="{StaticResource Text.Strong}"/>
                                     <TextBlock x:Name="VersionText" Style="{StaticResource Text.Caption}"/>
                                 </StackPanel>
-                                <Button Grid.Column="2" Style="{StaticResource Button.Danger}" ui:Ui.Glyph="&#xE7E8;" Content="Закрыть Futuretray полностью"
+                                <Button Grid.Column="2" Style="{StaticResource Button.Danger}" ui:Ui.Glyph="&#xE7E8;" Content="{ui:T 'Закрыть Futuretray полностью'}"
                                         Click="Exit_Click" VerticalAlignment="Center"/>
                             </Grid>
                         </Border>
@@ -795,12 +818,12 @@
                 <Grid x:Name="EmptyState" Visibility="Collapsed">
                     <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="460">
                         <Image Source="pack://application:,,,/Futuretray;component/Assets/logo.png" Width="96" Height="96" RenderOptions.BitmapScalingMode="HighQuality"/>
-                        <TextBlock Text="Соберите приложения в группы" Style="{StaticResource Text.Title}" TextAlignment="Center" Margin="0,24,0,8" TextWrapping="Wrap"/>
+                        <TextBlock Text="{ui:T 'Соберите приложения в группы'}" Style="{StaticResource Text.Title}" TextAlignment="Center" Margin="0,24,0,8" TextWrapping="Wrap"/>
                         <TextBlock Style="{StaticResource Text.Caption}" FontSize="14" TextAlignment="Center"
-                                   Text="Группа — это один значок на панели задач, который по клику раскрывает набор ваших программ, папок и сайтов."/>
-                        <Button Style="{StaticResource Button.Accent}" ui:Ui.Glyph="&#xE710;" Content="Создать первую группу"
+                                   Text="{ui:T 'Группа — это один значок на панели задач, который по клику раскрывает набор ваших программ, папок и сайтов.'}"/>
+                        <Button Style="{StaticResource Button.Accent}" ui:Ui.Glyph="&#xE710;" Content="{ui:T 'Создать первую группу'}"
                                 HorizontalAlignment="Center" Margin="0,24,0,0" Padding="18,8" Click="NewGroup_Click"/>
-                        <Button Style="{StaticResource Button.Link}" Content="Перенести группы из Taskbar Groups"
+                        <Button Style="{StaticResource Button.Link}" Content="{ui:T 'Перенести группы из Taskbar Groups'}"
                                 HorizontalAlignment="Center" Margin="0,8,0,0" Click="ImportTaskbarGroups_Click"/>
                     </StackPanel>
                 </Grid>
@@ -835,9 +858,9 @@
                             <RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
                         <StackPanel Margin="24,22,24,20">
-                            <TextBlock Text="Закрепите группу на панели задач" Style="{StaticResource Text.Subtitle}"/>
+                            <TextBlock Text="{ui:T 'Закрепите группу на панели задач'}" Style="{StaticResource Text.Subtitle}"/>
                             <TextBlock x:Name="PinStatus" Style="{StaticResource Text.Caption}" Margin="0,4,0,0"
-                                       Text="Windows не даёт программам закрепляться самостоятельно, поэтому последний шаг — за вами. Это займёт пару секунд."/>
+                                       Text="{ui:T 'Windows не даёт программам закрепляться самостоятельно, поэтому последний шаг — за вами. Это займёт пару секунд.'}"/>
 
                             <Border Style="{StaticResource Card}" Margin="0,18,0,8" Padding="16,14">
                                 <StackPanel>
@@ -846,12 +869,12 @@
                                             <ColumnDefinition Width="*"/>
                                             <ColumnDefinition Width="Auto"/>
                                         </Grid.ColumnDefinitions>
-                                        <TextBlock Text="Способ 1 — через Проводник" Style="{StaticResource Text.Strong}" VerticalAlignment="Center"/>
-                                        <Button Grid.Column="1" Style="{StaticResource Button.Accent}" ui:Ui.Glyph="&#xE838;" Content="Показать ярлык"
+                                        <TextBlock Text="{ui:T 'Способ 1 — через Проводник'}" Style="{StaticResource Text.Strong}" VerticalAlignment="Center"/>
+                                        <Button Grid.Column="1" Style="{StaticResource Button.Accent}" ui:Ui.Glyph="&#xE838;" Content="{ui:T 'Показать ярлык'}"
                                                 Click="RevealLink_Click"/>
                                     </Grid>
                                     <TextBlock Style="{StaticResource Text.Caption}" Margin="0,8,0,0" LineHeight="18"
-                                               Text="1. Нажмите «Показать ярлык» — откроется папка, ярлык группы уже будет выделен.&#x0a;2. Щёлкните по нему правой кнопкой → «Закрепить на панели задач».&#x0a;Если такого пункта нет — выберите «Показать дополнительные параметры» (или Shift + правая кнопка)."/>
+                                               Text="{ui:T '1. Нажмите «Показать ярлык» — откроется папка, ярлык группы уже будет выделен.&#x0a;2. Щёлкните по нему правой кнопкой → «Закрепить на панели задач».&#x0a;Если такого пункта нет — выберите «Показать дополнительные параметры» (или Shift + правая кнопка).'}"/>
                                 </StackPanel>
                             </Border>
 
@@ -862,8 +885,8 @@
                                             <ColumnDefinition Width="*"/>
                                             <ColumnDefinition Width="Auto"/>
                                         </Grid.ColumnDefinitions>
-                                        <TextBlock Text="Способ 2 — через меню «Пуск»" Style="{StaticResource Text.Strong}" VerticalAlignment="Center"/>
-                                        <Button Grid.Column="1" ui:Ui.Glyph="&#xE80F;" Content="Добавить в «Пуск»" Click="AddToStart_Click"/>
+                                        <TextBlock Text="{ui:T 'Способ 2 — через меню «Пуск»'}" Style="{StaticResource Text.Strong}" VerticalAlignment="Center"/>
+                                        <Button Grid.Column="1" ui:Ui.Glyph="&#xE80F;" Content="{ui:T 'Добавить в «Пуск»'}" Click="AddToStart_Click"/>
                                     </Grid>
                                     <TextBlock x:Name="StartHint" Style="{StaticResource Text.Caption}" Margin="0,8,0,0" LineHeight="18"/>
                                 </StackPanel>
@@ -872,7 +895,7 @@
                             <StackPanel Orientation="Horizontal" Margin="2,16,0,0">
                                 <TextBlock Text="&#xE946;" Style="{StaticResource Text.Glyph}" FontSize="14" Foreground="{DynamicResource Brush.AccentForeground}" Margin="0,0,10,0" VerticalAlignment="Top"/>
                                 <TextBlock Style="{StaticResource Text.Caption}" MaxWidth="480"
-                                           Text="Закрепить нужно один раз: когда вы меняете приложения, название или значок, закреплённая группа обновится сама."/>
+                                           Text="{ui:T 'Закрепить нужно один раз: когда вы меняете приложения, название или значок, закреплённая группа обновится сама.'}"/>
                             </StackPanel>
                         </StackPanel>
                         <Border Grid.Row="1" Background="{DynamicResource Brush.DialogFooter}" CornerRadius="0,0,8,8" Padding="24,16">
@@ -880,10 +903,10 @@
                                 <StackPanel x:Name="PinWaiting" Orientation="Horizontal" VerticalAlignment="Center">
                                     <TextBlock x:Name="PinWaitingGlyph" Text="&#xE916;" Style="{StaticResource Text.Glyph}" FontSize="14"
                                                Foreground="{DynamicResource Brush.TextSecondary}" Margin="0,0,10,0"/>
-                                    <TextBlock x:Name="PinWaitingText" Text="Жду, пока значок появится на панели задач…"
+                                    <TextBlock x:Name="PinWaitingText" Text="{ui:T 'Жду, пока значок появится на панели задач…'}"
                                                Foreground="{DynamicResource Brush.TextSecondary}" VerticalAlignment="Center"/>
                                 </StackPanel>
-                                <Button HorizontalAlignment="Right" Style="{StaticResource Button.Accent}" Content="Готово" MinWidth="120" Click="CloseOverlay_Click"/>
+                                <Button HorizontalAlignment="Right" Style="{StaticResource Button.Accent}" Content="{ui:T 'Готово'}" MinWidth="120" Click="CloseOverlay_Click"/>
                             </Grid>
                         </Border>
                     </Grid>
@@ -896,22 +919,22 @@
                             <RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
                         <StackPanel Margin="24,22,24,12">
-                            <TextBlock Text="Добавить приложения" Style="{StaticResource Text.Subtitle}"/>
-                            <TextBlock Text="Всё из меню «Пуск», включая приложения Microsoft Store. Можно выбрать несколько." Style="{StaticResource Text.Caption}" Margin="0,4,0,14"/>
-                            <TextBox x:Name="PickerSearch" ui:Ui.Placeholder="Поиск приложений" TextChanged="PickerSearch_TextChanged" KeyDown="PickerSearch_KeyDown"/>
+                            <TextBlock Text="{ui:T 'Добавить приложения'}" Style="{StaticResource Text.Subtitle}"/>
+                            <TextBlock Text="{ui:T 'Всё из меню «Пуск», включая приложения Microsoft Store. Можно выбрать несколько.'}" Style="{StaticResource Text.Caption}" Margin="0,4,0,14"/>
+                            <TextBox x:Name="PickerSearch" ui:Ui.Placeholder="{ui:T 'Поиск приложений'}" TextChanged="PickerSearch_TextChanged" KeyDown="PickerSearch_KeyDown"/>
                         </StackPanel>
                         <ListBox x:Name="PickerList" Grid.Row="1" Margin="14,0,14,8" SelectionMode="Multiple"
                                  ItemContainerStyle="{StaticResource PickerItem}" ItemTemplate="{StaticResource PickerTemplate}"
                                  VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling"
                                  MouseDoubleClick="PickerList_DoubleClick"/>
-                        <TextBlock x:Name="PickerLoading" Grid.Row="1" Text="Собираю список приложений…" HorizontalAlignment="Center" VerticalAlignment="Center"
+                        <TextBlock x:Name="PickerLoading" Grid.Row="1" Text="{ui:T 'Собираю список приложений…'}" HorizontalAlignment="Center" VerticalAlignment="Center"
                                    Foreground="{DynamicResource Brush.TextSecondary}" Visibility="Collapsed"/>
                         <Border Grid.Row="2" Background="{DynamicResource Brush.DialogFooter}" CornerRadius="0,0,8,8" Padding="24,16">
                             <Grid>
                                 <TextBlock x:Name="PickerCount" VerticalAlignment="Center" Foreground="{DynamicResource Brush.TextSecondary}"/>
                                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                                    <Button Content="Отмена" MinWidth="110" Click="CloseOverlay_Click"/>
-                                    <Button x:Name="PickerAddButton" Style="{StaticResource Button.Accent}" Content="Добавить" MinWidth="110" Margin="8,0,0,0" Click="PickerAdd_Click"/>
+                                    <Button Content="{ui:T 'Отмена'}" MinWidth="110" Click="CloseOverlay_Click"/>
+                                    <Button x:Name="PickerAddButton" Style="{StaticResource Button.Accent}" Content="{ui:T 'Добавить'}" MinWidth="110" Margin="8,0,0,0" Click="PickerAdd_Click"/>
                                 </StackPanel>
                             </Grid>
                         </Border>
@@ -924,15 +947,15 @@
                             <RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
                         <StackPanel Margin="24,22,24,22">
-                            <TextBlock Text="Добавить ссылку" Style="{StaticResource Text.Subtitle}"/>
-                            <TextBlock Text="Сайт откроется в браузере по умолчанию. Подойдут и ссылки вида steam://, discord://, tg://" Style="{StaticResource Text.Caption}" Margin="0,4,0,16"/>
+                            <TextBlock Text="{ui:T 'Добавить ссылку'}" Style="{StaticResource Text.Subtitle}"/>
+                            <TextBlock Text="{ui:T 'Сайт откроется в браузере по умолчанию. Подойдут и ссылки вида steam://, discord://, tg://'}" Style="{StaticResource Text.Caption}" Margin="0,4,0,16"/>
                             <TextBox x:Name="UrlBox" ui:Ui.Placeholder="https://example.com" KeyDown="UrlBox_KeyDown"/>
-                            <TextBox x:Name="UrlNameBox" ui:Ui.Placeholder="Название (необязательно)" Margin="0,8,0,0" KeyDown="UrlBox_KeyDown"/>
+                            <TextBox x:Name="UrlNameBox" ui:Ui.Placeholder="{ui:T 'Название (необязательно)'}" Margin="0,8,0,0" KeyDown="UrlBox_KeyDown"/>
                         </StackPanel>
                         <Border Grid.Row="1" Background="{DynamicResource Brush.DialogFooter}" CornerRadius="0,0,8,8" Padding="24,16">
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                                <Button Content="Отмена" MinWidth="110" Click="CloseOverlay_Click"/>
-                                <Button Style="{StaticResource Button.Accent}" Content="Добавить" MinWidth="110" Margin="8,0,0,0" Click="UrlAdd_Click"/>
+                                <Button Content="{ui:T 'Отмена'}" MinWidth="110" Click="CloseOverlay_Click"/>
+                                <Button Style="{StaticResource Button.Accent}" Content="{ui:T 'Добавить'}" MinWidth="110" Margin="8,0,0,0" Click="UrlAdd_Click"/>
                             </StackPanel>
                         </Border>
                     </Grid>

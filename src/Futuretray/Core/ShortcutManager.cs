@@ -148,7 +148,7 @@ public sealed class ShortcutManager
             var info = File.Exists(path) ? ShellLink.Read(path) : null;
             if (info != null && string.Equals(info.Target, ExePath, StringComparison.OrdinalIgnoreCase)) return;
             ShellLink.Save(path, ExePath, "", Path.GetDirectoryName(ExePath), ExePath,
-                "Группы приложений на панели задач", "Futuretray.App");
+                Loc.T("Группы приложений на панели задач"), "Futuretray.App");
         }
         catch (Exception ex)
         {
@@ -178,7 +178,7 @@ public sealed class ShortcutManager
     {
         var invalid = Path.GetInvalidFileNameChars();
         var name = new string((g.Name ?? "").Select(c => invalid.Contains(c) ? '_' : c).ToArray()).Trim().TrimEnd('.');
-        if (string.IsNullOrWhiteSpace(name)) name = "Группа";
+        if (string.IsNullOrWhiteSpace(name)) name = Loc.T("Группа");
 
         // Одинаковые имена у разных групп не должны перетирать ярлыки друг друга.
         var groups = App.Host.Store.Config.Groups;

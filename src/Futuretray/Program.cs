@@ -23,6 +23,9 @@ internal static class Program
             return RunHost(new HostCommand(CommandKind.Background));
         }
 #endif
+        // Перезапуск: ждём, пока старая копия отпустит «замок» хоста, и становимся хостом сами.
+        if (args.Contains("--restart", StringComparer.OrdinalIgnoreCase)) WaitForHostExit();
+
         var command = HostCommand.Parse(args);
         if (command.Kind == CommandKind.Popup && Native.GetCursorPos(out var cursor))
             command = command with { X = cursor.X, Y = cursor.Y };

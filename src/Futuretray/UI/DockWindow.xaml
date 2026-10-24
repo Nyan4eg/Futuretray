@@ -14,7 +14,7 @@
 
         <StackPanel x:Name="Body" Orientation="Horizontal" Margin="4" HorizontalAlignment="Left" VerticalAlignment="Top">
             <Border x:Name="Grip" Background="Transparent" Cursor="SizeAll" Visibility="Collapsed"
-                    ToolTip="Перетащите, чтобы переместить. Отпустите у края экрана — трей прилипнет к нему."
+                    ToolTip="{ui:T 'Перетащите, чтобы переместить. Отпустите у края экрана — трей прилипнет к нему.'}"
                     MouseLeftButtonDown="Grip_MouseDown" MouseMove="Grip_MouseMove" MouseLeftButtonUp="Grip_MouseUp">
                 <TextBlock x:Name="GripGlyph" Style="{StaticResource Text.Glyph}" FontSize="12"
                            Foreground="{DynamicResource Brush.TextTertiary}" HorizontalAlignment="Center"/>
