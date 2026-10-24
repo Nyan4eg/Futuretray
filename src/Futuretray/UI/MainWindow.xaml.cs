@@ -864,6 +864,24 @@ public partial class MainWindow : Window
 
     private void OpenDataFolder_Click(object sender, RoutedEventArgs e) => Launcher.OpenFolder(ConfigStore.DataDir);
 
+    private void CreateReport_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var path = DiagnosticsReport.Create(_app.Store);
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("explorer.exe", $"/select,\"{path}\"") { UseShellExecute = true })?.Dispose();
+            ShowToast("Отчёт сохранён на рабочий стол — отправьте этот zip разработчику");
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Report");
+            ShowToast("Не удалось собрать отчёт: " + ex.Message);
+        }
+    }
+
+    private void ReportIssue_Click(object sender, RoutedEventArgs e) =>
+        Launcher.Launch(new LaunchItem { Kind = ItemKind.Url, Target = $"https://github.com/{Updater.Repository}/issues/new" });
+
     private async void CheckUpdates_Click(object sender, RoutedEventArgs e) => await _app.Updates.CheckAsync(manual: true);
 
     private async void InstallUpdate_Click(object sender, RoutedEventArgs e) => await _app.Updates.InstallAsync();

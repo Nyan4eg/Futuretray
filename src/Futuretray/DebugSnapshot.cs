@@ -60,6 +60,7 @@ internal static class DebugSnapshot
                 {
                     SavePopup(app, dir);
                     SaveDocks(app, dir);
+                    DiagnosticsReport.Create(app.Store, dir);
                     timer.Stop();
                     app.Shutdown();
                     return;
