@@ -155,7 +155,9 @@ public sealed class RunningApps
         if (Native.DwmGetWindowAttribute(hwnd, Native.DWMWA_CLOAKED, out int cloaked, sizeof(int)) == 0 &&
             cloaked != 0 && cloaked != 2) return false;
 
-        return Native.ClassName(hwnd) is not ("Progman" or "WorkerW" or "Shell_TrayWnd" or "Shell_SecondaryTrayWnd");
+        // PseudoConsoleWindow — невидимая «заглушка» консольной программы, запущенной в Windows Terminal:
+        // она висит свёрнутой за краем экрана, двигать её бессмысленно.
+        return Native.ClassName(hwnd) is not ("Progman" or "WorkerW" or "Shell_TrayWnd" or "Shell_SecondaryTrayWnd" or "PseudoConsoleWindow");
     }
 
     private static uint OwnerPid(IntPtr hwnd)

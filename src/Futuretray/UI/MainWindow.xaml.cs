@@ -199,6 +199,7 @@ public partial class MainWindow : Window
         UpdatePreviewTint();
         BuildMonitorChoices();
         UpdateHotkeyErrors();
+        UpdateLayoutStatus();
     }
 
     private void BuildMonitorChoices()
@@ -391,6 +392,40 @@ public partial class MainWindow : Window
                 _app.Store.SaveNow();
                 _app.Restart();
             });
+    }
+
+    // ================= Рабочее пространство =================
+
+    private void CaptureLayout_Click(object sender, RoutedEventArgs e)
+    {
+        if (_group == null) return;
+        ShowToast(Workspaces.Describe(Workspaces.Capture(_group)));
+        UpdateLayoutStatus();
+    }
+
+    private void ArrangeLayout_Click(object sender, RoutedEventArgs e)
+    {
+        if (_group == null) return;
+        ShowToast(Loc.T("Раскладываю окна… недостающие программы запускаются"));
+        Workspaces.Arrange(_group, result => ShowToast(Workspaces.Describe(result)));
+    }
+
+    private void ForgetLayout_Click(object sender, RoutedEventArgs e)
+    {
+        if (_group == null) return;
+        Workspaces.Forget(_group);
+        UpdateLayoutStatus();
+        ShowToast(Loc.T("Расположение окон забыто"));
+    }
+
+    private void UpdateLayoutStatus()
+    {
+        if (_group == null) return;
+        int saved = _group.Items.Count(i => i.Layout != null);
+        LayoutStatus.Text = saved == 0
+            ? Loc.T("Расположение ещё не запомнено")
+            : Loc.F("Запомнены места окон: {0} из {1}", saved, _group.Items.Count);
+        ArrangeButton.IsEnabled = ForgetLayoutButton.IsEnabled = saved > 0;
     }
 
     private void UpdateHotkeyErrors()

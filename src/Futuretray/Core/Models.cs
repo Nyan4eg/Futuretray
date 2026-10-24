@@ -37,6 +37,22 @@ public enum UiLanguage { Auto, Russian, English }
 public enum DockEdge { Left, Top, Right, Bottom, Free }
 public enum DockAlign { Start, Center, End }
 
+/// <summary>
+/// Запомненное место окна программы: монитор и прямоугольник в долях его рабочей области
+/// (0..1) — так расположение переживает смену разрешения и масштаба.
+/// </summary>
+public sealed class WindowLayout
+{
+    public string? Monitor { get; set; }
+    public double X { get; set; }
+    public double Y { get; set; }
+    public double Width { get; set; }
+    public double Height { get; set; }
+    public bool Maximized { get; set; }
+
+    public WindowLayout Clone() => (WindowLayout)MemberwiseClone();
+}
+
 public sealed class LaunchItem : Observable
 {
     private string _id = Ids.New();
@@ -56,6 +72,11 @@ public sealed class LaunchItem : Observable
     public string? WorkingDirectory { get => _workingDirectory; set => Set(ref _workingDirectory, string.IsNullOrWhiteSpace(value) ? null : value); }
     public bool RunAsAdmin { get => _runAsAdmin; set => Set(ref _runAsAdmin, value); }
     public string? CustomIconPath { get => _customIconPath; set { if (Set(ref _customIconPath, string.IsNullOrWhiteSpace(value) ? null : value)) IconInputsChanged(); } }
+
+    private WindowLayout? _layout;
+
+    /// <summary>Место окна для рабочего пространства группы; null — не запоминали.</summary>
+    public WindowLayout? Layout { get => _layout; set => Set(ref _layout, value); }
 
     [JsonIgnore] public ImageSource? Icon => IconService.Current?.Get(this, IconService.TilePx);
 
@@ -98,6 +119,7 @@ public sealed class LaunchItem : Observable
         WorkingDirectory = WorkingDirectory,
         RunAsAdmin = RunAsAdmin,
         CustomIconPath = CustomIconPath,
+        Layout = Layout?.Clone(),
     };
 }
 
@@ -235,6 +257,9 @@ public sealed class Group : Observable
 
     /// <summary>Сообщить подписчикам, что вид группы изменился (например, у элемента появилась новая иконка).</summary>
     public void Touch() => Changed?.Invoke(this, EventArgs.Empty);
+
+    /// <summary>Есть ли запомненное рабочее пространство (места окон).</summary>
+    [JsonIgnore] public bool HasLayout => Items.Any(i => i.Layout != null);
 
     [JsonIgnore] public ImageSource? Icon => GroupIconRenderer.Get(this, 96);
 

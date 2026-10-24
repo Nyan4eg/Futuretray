@@ -211,7 +211,7 @@ public partial class PopupWindow : Window
         if (e.Handled) return;
         e.Handled = true;
         var menu = NewMenu(Root);
-        menu.Items.Add(App.MenuItem("", Loc.T("Открыть все"), OpenAll));
+        menu.Items.Add(App.MenuItem("", Group.HasLayout ? Loc.T("Открыть все и разложить окна") : Loc.T("Открыть все"), OpenAll));
         menu.Items.Add(App.MenuItem("", Loc.T("Изменить группу…"), () =>
         {
             HidePopup();
@@ -222,9 +222,8 @@ public partial class PopupWindow : Window
 
     private void OpenAll()
     {
-        var items = Group.Items.ToList();
         HidePopup();
-        foreach (var item in items) Launcher.Launch(item);
+        App.Host.OpenAll(Group);
     }
 
     // ---------- Клавиатура ----------

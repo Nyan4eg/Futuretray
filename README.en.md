@@ -41,6 +41,7 @@ In the popup: click to launch, **Ctrl+click** keeps it open, **Shift+click** or 
   The pinned icon updates by itself — no need to re-pin.
 - **Like the taskbar**: a dash under running apps, and clicking a running app switches to its window.
 - **Jump list**: right-click a pinned group to see its apps in the native Windows menu.
+- **Workspaces**: “Remember layout”, and “Open all” puts every window back in its place, across monitors.
 - **Desktop tray**: show any group as its own bar at a screen edge or anywhere you like — always on top,
   auto-hiding, or reserving screen space. Drop a file onto an app in the tray to open it there.
 - **Keyboard**: a shortcut per group and **Win+Alt+Space** to search all groups.

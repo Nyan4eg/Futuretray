@@ -55,6 +55,16 @@ internal static class DebugSnapshot
     {
         var dir = Directory!;
         System.IO.Directory.CreateDirectory(dir);
+        if (Environment.GetEnvironmentVariable("FUTURETRAY_CHECK") == "workspace")
+        {
+            app.Dispatcher.BeginInvoke(async () =>
+            {
+                try { await CheckWorkspaceAsync(dir); }
+                catch (Exception ex) { File.WriteAllText(Path.Combine(dir, "error.txt"), ex.ToString()); }
+                app.Shutdown();
+            });
+            return;
+        }
         var steps = new List<(string name, Action action)>();
         MainWindow? editor = null;
 
@@ -98,6 +108,112 @@ internal static class DebugSnapshot
             }
         };
         timer.Start();
+    }
+
+    /// <summary>
+    /// Живая проверка рабочих пространств на двух формах PowerShell: запомнить → закрыть → разложить
+    /// с запуском (вторая форма появляется через 3 с и сначала показывает заставку) → разложить уже открытые.
+    /// Итог — workspace.txt.
+    /// </summary>
+    private static async Task CheckWorkspaceAsync(string dir)
+    {
+        var sb = new System.Text.StringBuilder();
+        var script = Path.Combine(dir, "form.ps1");
+        File.WriteAllText(script, """
+            param([string]$Name, [int]$Delay = 0, [switch]$Splash)
+            Add-Type -AssemblyName System.Windows.Forms
+            Start-Sleep -Seconds $Delay
+            if ($Splash) {
+                $s = New-Object System.Windows.Forms.Form
+                $s.Text = "$Name splash"; $s.StartPosition = 'Manual'; $s.Location = '700,300'; $s.Size = '300,200'
+                $s.Show(); [System.Windows.Forms.Application]::DoEvents(); Start-Sleep -Milliseconds 2500; $s.Close()
+            }
+            $f = New-Object System.Windows.Forms.Form
+            $f.Text = $Name; $f.StartPosition = 'Manual'; $f.Location = '200,200'; $f.Size = '400,300'
+            [System.Windows.Forms.Application]::Run($f)
+            """);
+        // Своя копия powershell.exe: уникальный путь, чтобы не спутать формы с консолями пользователя.
+        var ps = Path.Combine(dir, "ftform.exe");
+        File.Copy(Path.Combine(Environment.SystemDirectory, @"WindowsPowerShell\v1.0\powershell.exe"), ps, true);
+        LaunchItem Form(string name, string extra) => new()
+        {
+            Kind = ItemKind.Path, Target = ps, Name = name,
+            Arguments = $"-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File \"{script}\" -Name {name} {extra}",
+        };
+        var group = new Group { Name = "ws" };
+        group.Items.Add(Form("FormA", ""));
+        group.Items.Add(Form("FormB", "-Delay 3 -Splash"));
+        var running = RunningApps.Current!;
+        var work = Monitors.Find(null).Work;
+
+        async Task WaitWindows(int count)
+        {
+            for (int t = 0; t < 100 && running.WindowsFor(group.Items[0]).Count < count; t++) { await Task.Delay(200); running.Refresh(); }
+        }
+        void CloseAll() { foreach (var p in System.Diagnostics.Process.GetProcessesByName("ftform")) p.Kill(); }
+        string Rects() => string.Join("; ", running.WindowsFor(group.Items[0]).Select(w => { var r = Native.VisibleBounds(w); return $"{r.Left},{r.Top},{r.Width}x{r.Height}"; }).Order());
+
+        CloseAll();
+
+        // 1. Запомнить: одна открытая форма, вторая — нет.
+        Launcher.Launch(new LaunchItem { Kind = ItemKind.Path, Target = ps, Name = "FormA", Arguments = group.Items[0].Arguments });
+        await WaitWindows(1);
+        var a = running.WindowsFor(group.Items[0]).First();
+        foreach (var w in running.WindowsFor(group.Items[0]))
+        {
+            Native.GetWindowThreadProcessId(w, out var wp);
+            sb.AppendLine($"found: {w} class={Native.ClassName(w)} pid={wp} iconic={Native.IsIconic(w)}");
+        }
+        Native.SetWindowPos(a, IntPtr.Zero, work.Left + 50, work.Top + 60, 640, 480, Native.SWP_NOZORDER | Native.SWP_NOACTIVATE);
+        await Task.Delay(300);
+        var capture = Workspaces.Capture(group);
+        sb.AppendLine($"capture: {Workspaces.Describe(capture)}");
+        var la = group.Items[0].Layout;
+        sb.AppendLine($"capture-ok: {capture.Saved == 1 && capture.NotRunning.Count == 1 && la != null}");
+        var restored = la == null ? default : Workspaces.ToRect(la, work);
+        var actual = Native.VisibleBounds(a);
+        sb.AppendLine($"capture-roundtrip: {restored.Left},{restored.Top},{restored.Width}x{restored.Height} vs {actual.Left},{actual.Top},{actual.Width}x{actual.Height}");
+        CloseAll();
+        await Task.Delay(800);
+
+        // 2. Разложить с запуском: левая и правая половины рабочей области.
+        group.Items[0].Layout = new WindowLayout { X = 0, Y = 0, Width = 0.5, Height = 0.6 };
+        group.Items[1].Layout = new WindowLayout { X = 0.5, Y = 0.2, Width = 0.5, Height = 0.6 };
+        var expected = group.Items.Select(i => Workspaces.ToRect(i.Layout!, work)).Select(r => $"{r.Left},{r.Top},{r.Width}x{r.Height}").Order().ToList();
+        sb.AppendLine($"expected: {string.Join("; ", expected)}");
+
+        async Task<Workspaces.ArrangeResult> ArrangeAndWait(int settle)
+        {
+            var tcs = new TaskCompletionSource<Workspaces.ArrangeResult>();
+            var started = DateTime.Now;
+            Workspaces.Arrange(group, r => tcs.TrySetResult(r));
+            var result = await tcs.Task;
+            sb.AppendLine($"  done after {(DateTime.Now - started).TotalSeconds:0.0}s: {Workspaces.Describe(result)}");
+            await Task.Delay(settle);
+            running.Refresh();
+            return result;
+        }
+
+        var r1 = await ArrangeAndWait(14000); // ждём конец наблюдения за заставкой
+        var got = Rects();
+        sb.AppendLine($"launch-arrange: {got}");
+        sb.AppendLine($"launch-arrange-ok: {r1.Placed == 2 && got == string.Join("; ", expected)}");
+
+        // 3. Уже открыты, но сдвинуты — раскладываются сразу.
+        foreach (var w in running.WindowsFor(group.Items[0]))
+            Native.SetWindowPos(w, IntPtr.Zero, work.Left + 300, work.Top + 300, 300, 200, Native.SWP_NOZORDER | Native.SWP_NOACTIVATE);
+        var r2 = await ArrangeAndWait(300);
+        got = Rects();
+        sb.AppendLine($"rearrange: {got}");
+        sb.AppendLine($"rearrange-ok: {r2.Placed == 2 && r2.NotFound.Count == 0 && got == string.Join("; ", expected)}");
+
+        // 4. Развёрнутое окно.
+        group.Items[1].Layout!.Maximized = true;
+        await ArrangeAndWait(300);
+        sb.AppendLine($"maximized-ok: {running.WindowsFor(group.Items[0]).Count(Native.IsZoomed) == 1}");
+
+        CloseAll();
+        File.WriteAllText(Path.Combine(dir, "workspace.txt"), sb.ToString());
     }
 
     private static T? Current<T>() where T : Window => Application.Current.Windows.OfType<T>().FirstOrDefault();

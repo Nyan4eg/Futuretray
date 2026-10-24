@@ -4,7 +4,7 @@ using System.Text;
 
 namespace Futuretray.Core;
 
-public enum CommandKind { Editor, Popup, Background, Exit, Updated, Uninstall, Launch }
+public enum CommandKind { Editor, Popup, Background, Exit, Updated, Uninstall, Launch, Arrange }
 
 public sealed record HostCommand(CommandKind Kind, string? GroupId = null, int X = 0, int Y = 0, string? ItemId = null)
 {
@@ -28,6 +28,8 @@ public sealed record HostCommand(CommandKind Kind, string? GroupId = null, int X
                 case "--launch" when i + 2 < args.Length:
                     // Пункт списка переходов: запустить элемент группы, не открывая окно группы.
                     return new HostCommand(CommandKind.Launch, args[i + 1].Trim(), ItemId: args[i + 2].Trim());
+                case "--arrange" when i + 1 < args.Length:
+                    return new HostCommand(CommandKind.Arrange, args[i + 1].Trim());
                 case "--editor" or "/editor":
                     return new HostCommand(CommandKind.Editor, i + 1 < args.Length ? args[i + 1].Trim() : null);
             }

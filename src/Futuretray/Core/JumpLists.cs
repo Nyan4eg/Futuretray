@@ -30,6 +30,8 @@ internal static class JumpLists
             foreach (var item in group.Items.Take(MaxItems))
                 tasks.AddObject(ShellLink.CreateTask(exe, $"--launch {group.Id} {item.Id}", item.Name, ItemIcon(item), item.KindLabel));
             if (group.Items.Count > 0) tasks.AddObject(ShellLink.CreateSeparator());
+            if (group.HasLayout)
+                tasks.AddObject(ShellLink.CreateTask(exe, $"--arrange {group.Id}", Loc.T("Открыть все и разложить окна"), exe, null));
             tasks.AddObject(ShellLink.CreateTask(exe, $"--editor {group.Id}", Loc.T("Изменить группу…"), exe, null));
 
             list.AddUserTasks((IObjectArray)tasks);

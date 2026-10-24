@@ -44,6 +44,27 @@ internal static class English
         ["Открывает группу у курсора из любой программы. Дальше — стрелки, цифры 1–9 или набор названия."] =
             "Opens the group next to the cursor from any app. Then use arrows, digits 1–9 or type a name.",
 
+        // ----- Рабочее пространство -----
+        ["Рабочее пространство"] = "Workspace",
+        ["Расставьте окна программ группы как вам удобно и нажмите «Запомнить расположение». Потом «Разложить» — или «Открыть все» в окне группы — запустит недостающие программы и вернёт окна на свои места, в том числе на другие мониторы."] =
+            "Arrange the windows of this group's apps the way you like and click “Remember layout”. Later, “Arrange” — or “Open all” in the group popup — starts the missing apps and puts every window back in its place, other monitors included.",
+        ["Запомнить расположение"] = "Remember layout",
+        ["Разложить"] = "Arrange",
+        ["Забыть"] = "Forget",
+        ["Раскладываю окна… недостающие программы запускаются"] = "Arranging windows… starting the missing apps",
+        ["Расположение окон забыто"] = "Window layout forgotten",
+        ["Расположение ещё не запомнено"] = "No layout remembered yet",
+        ["Запомнены места окон: {0} из {1}"] = "Window places remembered: {0} of {1}",
+        ["Ни одна программа группы не открыта — откройте их, расставьте окна и нажмите ещё раз"] =
+            "None of this group's apps are open — open them, arrange the windows and click again",
+        ["Запомнено окон: {0}"] = "Windows remembered: {0}",
+        [" · не открыты: {0}"] = " · not open: {0}",
+        [" · свёрнуты, пропущены: {0}"] = " · minimized, skipped: {0}",
+        ["Разложено окон: {0}"] = "Windows arranged: {0}",
+        [" · не дождался окна: {0}"] = " · window never appeared: {0}",
+        [" · Windows не дала подвинуть (запущены от администратора): {0}"] = " · Windows refused to move them (running as administrator): {0}",
+        ["Открыть все и разложить окна"] = "Open all and arrange windows",
+
         // ----- Внешний вид -----
         ["Внешний вид"] = "Appearance",
         ["Цвет группы"] = "Group color",

@@ -192,6 +192,20 @@ public static class Native
     [DllImport("user32.dll")] public static extern bool IsWindowVisible(IntPtr hWnd);
     [DllImport("user32.dll")] public static extern bool IsWindow(IntPtr hWnd);
     [DllImport("user32.dll")] public static extern bool IsIconic(IntPtr hWnd);
+    [DllImport("user32.dll")] public static extern bool IsZoomed(IntPtr hWnd);
+    [DllImport("user32.dll")] public static extern IntPtr MonitorFromWindow(IntPtr hWnd, uint flags);
+    [DllImport("dwmapi.dll")] public static extern int DwmGetWindowAttribute(IntPtr hWnd, int attribute, out RECT value, int size);
+    public const int DWMWA_EXTENDED_FRAME_BOUNDS = 9;
+    public const int SW_MAXIMIZE = 3;
+
+    /// <summary>Видимые границы окна — без невидимых рамок, которые Windows 10/11 добавляет для изменения размера.</summary>
+    public static RECT VisibleBounds(IntPtr hWnd)
+    {
+        if (DwmGetWindowAttribute(hWnd, DWMWA_EXTENDED_FRAME_BOUNDS, out RECT frame, Marshal.SizeOf<RECT>()) == 0 && frame.Width > 0)
+            return frame;
+        GetWindowRect(hWnd, out var rect);
+        return rect;
+    }
     [DllImport("user32.dll")] public static extern IntPtr GetWindow(IntPtr hWnd, int cmd);
     [DllImport("user32.dll")] public static extern int GetWindowTextLength(IntPtr hWnd);
     [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr hWnd, int cmd);

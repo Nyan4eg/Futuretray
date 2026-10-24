@@ -135,6 +135,9 @@ public partial class App : Application
                 case CommandKind.Launch:
                     LaunchFromJumpList(command.GroupId, command.ItemId);
                     break;
+                case CommandKind.Arrange when Store.Find(command.GroupId) is { } arrangeGroup:
+                    OpenAll(arrangeGroup);
+                    break;
                 case CommandKind.Updated:
                     ShowEditor(null, Loc.F("Готово! Futuretray обновлён до версии {0}", Updater.CurrentVersionText));
                     break;
@@ -192,6 +195,23 @@ public partial class App : Application
         WindowEffects.ForceForeground(_editor);
         if (groupId != null) _editor.SelectGroup(groupId);
         if (message != null) _editor.ShowToast(message);
+    }
+
+    /// <summary>
+    /// «Открыть все»: если у группы запомнено рабочее пространство — запустить недостающее и разложить окна,
+    /// иначе просто запустить все программы.
+    /// </summary>
+    public void OpenAll(Group group)
+    {
+        if (!group.HasLayout)
+        {
+            foreach (var item in group.Items.ToList()) Launcher.Launch(item);
+            return;
+        }
+        Workspaces.Arrange(group, result =>
+        {
+            if (_editor?.IsVisible == true) _editor.ShowToast(Workspaces.Describe(result));
+        });
     }
 
     /// <summary>Пункт списка переходов закреплённой группы: открыть программу (или переключиться на неё).</summary>
