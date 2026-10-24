@@ -26,8 +26,7 @@ public partial class MainWindow : Window
     private DispatcherTimer? _toastTimer;
     private Action? _toastAction;
     private Action? _toastExpire;
-    private Point _chipStart;
-    private bool _draggingOut;
+    private DispatcherTimer? _pinWatch;
 
     public MainWindow()
     {
@@ -44,6 +43,7 @@ public partial class MainWindow : Window
         {
             Groups.CollectionChanged -= OnGroupsChanged;
             ThemeManager.Changed -= ApplyEffects;
+            _pinWatch?.Stop();
             FlushToast();
             BindGroup(null);
         };
@@ -282,44 +282,56 @@ public partial class MainWindow : Window
     private void Pin_Click(object sender, RoutedEventArgs e)
     {
         if (_group == null) return;
-        _app.Shortcuts.Update(_group);
-        PinStatus.Text = _app.Shortcuts.IsPinned(_group)
-            ? "Эта группа уже закреплена ✓  Если значок пропал с панели, закрепите его ещё раз любым способом ниже."
+        var group = _group;
+        _app.Shortcuts.Update(group);
+        bool alreadyPinned = _app.Shortcuts.IsPinned(group);
+
+        PinStatus.Text = alreadyPinned
+            ? "Эта группа уже закреплена. Если значок пропал с панели, закрепите его ещё раз любым способом ниже."
             : "Windows не даёт программам закрепляться самостоятельно, поэтому последний шаг — за вами. Это займёт пару секунд.";
+        StartHint.Text = $"Затем нажмите Win, начните вводить «{group.Name}», щёлкните по найденной группе правой кнопкой → «Закрепить на панели задач».";
+        SetPinWaiting(alreadyPinned ? PinState.Already : PinState.Waiting);
         ShowOverlay(PinPanel);
+
+        // Windows не сообщает о закреплении, поэтому просто следим за папкой закреплённых ярлыков.
+        _pinWatch?.Stop();
+        if (alreadyPinned) return;
+        _pinWatch = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
+        _pinWatch.Tick += (_, _) =>
+        {
+            if (Overlay.Visibility != Visibility.Visible || PinPanel.Visibility != Visibility.Visible || group != _group)
+            {
+                _pinWatch?.Stop();
+                return;
+            }
+            if (!_app.Shortcuts.IsPinned(group)) return;
+            _pinWatch?.Stop();
+            SetPinWaiting(PinState.Done);
+            var close = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1.5) };
+            close.Tick += (_, _) =>
+            {
+                close.Stop();
+                if (PinPanel.Visibility == Visibility.Visible) CloseOverlay();
+                ShowToast($"Готово! «{group.Name}» закреплена на панели задач");
+            };
+            close.Start();
+        };
+        _pinWatch.Start();
     }
 
-    private void PinChip_MouseDown(object sender, MouseButtonEventArgs e) => _chipStart = e.GetPosition(this);
+    private enum PinState { Waiting, Done, Already }
 
-    private void PinChip_MouseMove(object sender, MouseEventArgs e)
+    private void SetPinWaiting(PinState state)
     {
-        if (_group == null || e.LeftButton != MouseButtonState.Pressed) return;
-        var delta = e.GetPosition(this) - _chipStart;
-        if (Math.Abs(delta.X) < SystemParameters.MinimumHorizontalDragDistance &&
-            Math.Abs(delta.Y) < SystemParameters.MinimumVerticalDragDistance) return;
-
-        var path = _app.Shortcuts.Update(_group);
-        _draggingOut = true;
-        try
+        (PinWaitingGlyph.Text, PinWaitingText.Text) = state switch
         {
-            var data = new DataObject(DataFormats.FileDrop, new[] { path });
-            DragDrop.DoDragDrop(PinChip, data, DragDropEffects.Copy | DragDropEffects.Link);
-        }
-        finally
-        {
-            _draggingOut = false;
-        }
-
-        var group = _group;
-        var check = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1.2) };
-        check.Tick += (_, _) =>
-        {
-            check.Stop();
-            if (group != _group || !_app.Shortcuts.IsPinned(group)) return;
-            CloseOverlay();
-            ShowToast($"Готово! «{group.Name}» закреплена на панели задач");
+            PinState.Done => ("", "Готово! Группа закреплена на панели задач"),
+            PinState.Already => ("", "Уже закреплена на панели задач"),
+            _ => ("", "Жду, пока значок появится на панели задач…"),
         };
-        check.Start();
+        var key = state == PinState.Waiting ? "Brush.TextSecondary" : "Brush.AccentForeground";
+        PinWaitingGlyph.SetResourceReference(TextBlock.ForegroundProperty, key);
+        PinWaitingText.SetResourceReference(TextBlock.ForegroundProperty, key);
     }
 
     private void RevealLink_Click(object sender, RoutedEventArgs e)
@@ -335,7 +347,7 @@ public partial class MainWindow : Window
     private void AddToStart(Group group)
     {
         _app.Shortcuts.AddToStartMenu(group);
-        ShowToast($"«{group.Name}» добавлена в меню «Пуск» → Futuretray");
+        ShowToast($"«{group.Name}» добавлена в меню «Пуск». В поиске «Пуска» она может появиться через несколько секунд");
     }
 
     // ================= Элементы группы =================
@@ -612,7 +624,7 @@ public partial class MainWindow : Window
     private void Editor_DragOver(object sender, DragEventArgs e)
     {
         if (e.Handled) return;
-        bool accept = !_draggingOut && _group != null &&
+        bool accept = _group != null &&
                       (e.Data.GetDataPresent(DataFormats.FileDrop) || DroppedUrl(e.Data) != null);
         e.Effects = accept ? DragDropEffects.Copy : DragDropEffects.None;
         SetDropHighlight(accept);
@@ -624,7 +636,7 @@ public partial class MainWindow : Window
     private void Editor_Drop(object sender, DragEventArgs e)
     {
         SetDropHighlight(false);
-        if (e.Handled || _draggingOut || _group == null) return;
+        if (e.Handled || _group == null) return;
         if (e.Data.GetData(DataFormats.FileDrop) is string[] files && files.Length > 0)
             AddItems(files.Select(ItemFactory.FromPath));
         else if (DroppedUrl(e.Data) is { } url)
@@ -832,7 +844,11 @@ public partial class MainWindow : Window
         Overlay.BeginAnimation(OpacityProperty, new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(140)));
     }
 
-    private void CloseOverlay() => Overlay.Visibility = Visibility.Collapsed;
+    private void CloseOverlay()
+    {
+        _pinWatch?.Stop();
+        Overlay.Visibility = Visibility.Collapsed;
+    }
 
     private void CloseOverlay_Click(object sender, RoutedEventArgs e) => CloseOverlay();
 

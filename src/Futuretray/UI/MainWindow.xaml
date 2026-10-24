@@ -571,40 +571,33 @@
                                        Text="Windows не даёт программам закрепляться самостоятельно, поэтому последний шаг — за вами. Это займёт пару секунд."/>
 
                             <Border Style="{StaticResource Card}" Margin="0,18,0,8" Padding="16,14">
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="Auto"/>
-                                    </Grid.ColumnDefinitions>
-                                    <StackPanel VerticalAlignment="Center" Margin="0,0,16,0">
-                                        <TextBlock Text="Способ 1 — перетащите значок" Style="{StaticResource Text.Strong}"/>
-                                        <TextBlock Style="{StaticResource Text.Caption}" Margin="0,2,0,0"
-                                                   Text="Зажмите плашку справа и отпустите её на панели задач."/>
-                                    </StackPanel>
-                                    <Border x:Name="PinChip" Grid.Column="1" Cursor="SizeAll" CornerRadius="8" Padding="10,8,14,8"
-                                            Background="{DynamicResource Brush.AccentSubtle}" BorderBrush="{DynamicResource Brush.Accent}" BorderThickness="1"
-                                            PreviewMouseLeftButtonDown="PinChip_MouseDown" PreviewMouseMove="PinChip_MouseMove">
-                                        <StackPanel Orientation="Horizontal">
-                                            <Image Source="{Binding Icon}" Width="28" Height="28" RenderOptions.BitmapScalingMode="HighQuality"/>
-                                            <TextBlock Text="{Binding Name}" Margin="10,0,0,0" VerticalAlignment="Center" MaxWidth="160" TextTrimming="CharacterEllipsis"/>
-                                        </StackPanel>
-                                    </Border>
-                                </Grid>
+                                <StackPanel>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="Способ 1 — через Проводник" Style="{StaticResource Text.Strong}" VerticalAlignment="Center"/>
+                                        <Button Grid.Column="1" Style="{StaticResource Button.Accent}" ui:Ui.Glyph="&#xE838;" Content="Показать ярлык"
+                                                Click="RevealLink_Click"/>
+                                    </Grid>
+                                    <TextBlock Style="{StaticResource Text.Caption}" Margin="0,8,0,0" LineHeight="18"
+                                               Text="1. Нажмите «Показать ярлык» — откроется папка, ярлык группы уже будет выделен.&#x0a;2. Щёлкните по нему правой кнопкой → «Закрепить на панели задач».&#x0a;Если такого пункта нет — выберите «Показать дополнительные параметры» (или Shift + правая кнопка)."/>
+                                </StackPanel>
                             </Border>
 
-                            <Border Style="{StaticResource Card}" Margin="0,0,0,0" Padding="16,14">
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="Auto"/>
-                                    </Grid.ColumnDefinitions>
-                                    <StackPanel VerticalAlignment="Center" Margin="0,0,16,0">
-                                        <TextBlock Text="Способ 2 — через Проводник" Style="{StaticResource Text.Strong}"/>
-                                        <TextBlock Style="{StaticResource Text.Caption}" Margin="0,2,0,0"
-                                                   Text="Правой кнопкой по выделенному ярлыку → «Закрепить на панели задач» (в Windows 11 может быть в «Показать дополнительные параметры»)."/>
-                                    </StackPanel>
-                                    <Button Grid.Column="1" ui:Ui.Glyph="&#xE838;" Content="Показать ярлык" Click="RevealLink_Click" VerticalAlignment="Center"/>
-                                </Grid>
+                            <Border Style="{StaticResource Card}" Margin="0" Padding="16,14">
+                                <StackPanel>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="Способ 2 — через меню «Пуск»" Style="{StaticResource Text.Strong}" VerticalAlignment="Center"/>
+                                        <Button Grid.Column="1" ui:Ui.Glyph="&#xE80F;" Content="Добавить в «Пуск»" Click="AddToStart_Click"/>
+                                    </Grid>
+                                    <TextBlock x:Name="StartHint" Style="{StaticResource Text.Caption}" Margin="0,8,0,0" LineHeight="18"/>
+                                </StackPanel>
                             </Border>
 
                             <StackPanel Orientation="Horizontal" Margin="2,16,0,0">
@@ -615,8 +608,12 @@
                         </StackPanel>
                         <Border Grid.Row="1" Background="{DynamicResource Brush.DialogFooter}" CornerRadius="0,0,8,8" Padding="24,16">
                             <Grid>
-                                <Button HorizontalAlignment="Left" Style="{StaticResource Button.Subtle}" ui:Ui.Glyph="&#xE80F;"
-                                        Content="Добавить в меню «Пуск»" Click="AddToStart_Click"/>
+                                <StackPanel x:Name="PinWaiting" Orientation="Horizontal" VerticalAlignment="Center">
+                                    <TextBlock x:Name="PinWaitingGlyph" Text="&#xE916;" Style="{StaticResource Text.Glyph}" FontSize="14"
+                                               Foreground="{DynamicResource Brush.TextSecondary}" Margin="0,0,10,0"/>
+                                    <TextBlock x:Name="PinWaitingText" Text="Жду, пока значок появится на панели задач…"
+                                               Foreground="{DynamicResource Brush.TextSecondary}" VerticalAlignment="Center"/>
+                                </StackPanel>
                                 <Button HorizontalAlignment="Right" Style="{StaticResource Button.Accent}" Content="Готово" MinWidth="120" Click="CloseOverlay_Click"/>
                             </Grid>
                         </Border>
