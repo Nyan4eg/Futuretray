@@ -1,0 +1,904 @@
+using System.Collections.ObjectModel;
+using System.Collections.Specialized;
+using System.ComponentModel;
+using System.Reflection;
+using System.Text.Json;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Data;
+using System.Windows.Input;
+using System.Windows.Media;
+using System.Windows.Media.Animation;
+using System.Windows.Threading;
+using Futuretray.Core;
+using Microsoft.Win32;
+
+namespace Futuretray.UI;
+
+public partial class MainWindow : Window
+{
+    private enum View { Editor, Settings, Empty }
+
+    private readonly App _app = App.Host;
+    private Group? _group;
+    private List<InstalledApp>? _installed;
+    private ICollectionView? _installedView;
+    private DispatcherTimer? _toastTimer;
+    private Action? _toastAction;
+    private Action? _toastExpire;
+    private Point _chipStart;
+    private bool _draggingOut;
+
+    public MainWindow()
+    {
+        InitializeComponent();
+        WindowEffects.InstallChrome(this, 48, 6);
+
+        GroupList.ItemsSource = Groups;
+        SettingsPanel.DataContext = _app.Store.Config.Settings;
+        VersionText.Text = $"Версия {Assembly.GetExecutingAssembly().GetName().Version?.ToString(3)} · группы приложений на панели задач";
+
+        Groups.CollectionChanged += OnGroupsChanged;
+        ThemeManager.Changed += ApplyEffects;
+        Closed += (_, _) =>
+        {
+            Groups.CollectionChanged -= OnGroupsChanged;
+            ThemeManager.Changed -= ApplyEffects;
+            FlushToast();
+            BindGroup(null);
+        };
+        SourceInitialized += (_, _) => ApplyEffects();
+        StateChanged += (_, _) =>
+        {
+            bool max = WindowState == WindowState.Maximized;
+            RootGrid.Margin = max ? new Thickness(7) : new Thickness(0);
+            MaximizeButton.Content = max ? "" : "";
+        };
+        PreviewKeyDown += OnWindowKeyDown;
+
+        DragReorder.Attach(GroupList, () => Groups, "Futuretray.Group");
+        DragReorder.Attach(ItemsList, () => _group?.Items, "Futuretray.Item");
+
+        if (Groups.Count > 0) GroupList.SelectedIndex = 0;
+        else ShowView(View.Empty);
+    }
+
+    private ObservableCollection<Group> Groups => _app.Store.Config.Groups;
+
+    private LaunchItem? SelectedItem => ItemsList.SelectedItem as LaunchItem;
+
+    // ================= Окно =================
+
+    private void ApplyEffects()
+    {
+        bool backdrop = WindowEffects.Apply(this, BackdropKind.Mica, ThemeManager.AppDark);
+        if (backdrop) Background = Brushes.Transparent;
+        else SetResourceReference(BackgroundProperty, "Brush.WindowFallback");
+        ContentLayer.SetResourceReference(Border.BackgroundProperty, backdrop ? "Brush.Layer" : "Brush.LayerSolid");
+        CaptionButtons.Visibility = WindowEffects.SupportsBackdrop ? Visibility.Collapsed : Visibility.Visible;
+        if (_group != null) UpdatePreviewTint();
+    }
+
+    private void Minimize_Click(object sender, RoutedEventArgs e) => SystemCommands.MinimizeWindow(this);
+
+    private void Maximize_Click(object sender, RoutedEventArgs e)
+    {
+        if (WindowState == WindowState.Maximized) SystemCommands.RestoreWindow(this);
+        else SystemCommands.MaximizeWindow(this);
+    }
+
+    private void Close_Click(object sender, RoutedEventArgs e) => Close();
+
+    private void OnWindowKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Escape && Overlay.Visibility == Visibility.Visible)
+        {
+            CloseOverlay();
+            e.Handled = true;
+        }
+        else if (e.Key == Key.N && Keyboard.Modifiers == ModifierKeys.Control)
+        {
+            NewGroup_Click(this, new RoutedEventArgs());
+            e.Handled = true;
+        }
+        else if (e.Key == Key.F2 && _group != null)
+        {
+            GroupNameBox.Focus();
+            GroupNameBox.SelectAll();
+            e.Handled = true;
+        }
+    }
+
+    private void ShowView(View view)
+    {
+        EditorScroll.Visibility = view == View.Editor ? Visibility.Visible : Visibility.Collapsed;
+        SettingsScroll.Visibility = view == View.Settings ? Visibility.Visible : Visibility.Collapsed;
+        EmptyState.Visibility = view == View.Empty ? Visibility.Visible : Visibility.Collapsed;
+        if (view == View.Settings) SettingsNav.SetResourceReference(BackgroundProperty, "Brush.SubtleSelected");
+        else SettingsNav.Background = Brushes.Transparent;
+    }
+
+    // ================= Группы =================
+
+    public void SelectGroup(string id)
+    {
+        var group = Groups.FirstOrDefault(g => string.Equals(g.Id, id, StringComparison.OrdinalIgnoreCase));
+        if (group != null)
+        {
+            GroupList.SelectedItem = group;
+            GroupList.ScrollIntoView(group);
+        }
+    }
+
+    private void GroupList_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (GroupList.SelectedItem is Group g)
+        {
+            BindGroup(g);
+            ShowView(View.Editor);
+            EditorScroll.ScrollToTop();
+        }
+        else if (SettingsScroll.Visibility != Visibility.Visible)
+        {
+            BindGroup(null);
+            ShowView(Groups.Count == 0 ? View.Empty : View.Editor);
+        }
+    }
+
+    private void BindGroup(Group? group)
+    {
+        if (_group != null) _group.PropertyChanged -= OnGroupPropertyChanged;
+        _group = group;
+        EditorPanel.DataContext = group;
+        Overlay.DataContext = group;
+        ItemsList.SelectedIndex = -1;
+        UpdateItemCard();
+        if (group == null)
+        {
+            PreviewTiles.Unbind();
+            return;
+        }
+        group.PropertyChanged += OnGroupPropertyChanged;
+        PreviewTiles.Bind(group);
+        BuildSwatches();
+        UpdateIconPanels();
+        UpdatePreviewTint();
+    }
+
+    private void OnGroupPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        switch (e.PropertyName)
+        {
+            case nameof(Group.Color):
+                Dispatcher.BeginInvoke(BuildSwatches);
+                UpdatePreviewTint();
+                break;
+            case nameof(Group.TintOpacity):
+                UpdatePreviewTint();
+                break;
+            case nameof(Group.IconMode):
+                if (_group?.IconMode == GroupIconMode.Custom && _group.CustomIconPath == null)
+                    Dispatcher.BeginInvoke(() => PickGroupIcon_Click(this, new RoutedEventArgs()));
+                UpdateIconPanels();
+                break;
+            case nameof(Group.Icon):
+            case nameof(Group.IconItemId):
+            case nameof(Group.CustomIconPath):
+                UpdateIconPanels();
+                break;
+        }
+    }
+
+    private void OnGroupsChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        if (Groups.Count == 0 && SettingsScroll.Visibility != Visibility.Visible) ShowView(View.Empty);
+    }
+
+    private void NewGroup_Click(object sender, RoutedEventArgs e)
+    {
+        var palette = ColorUtil.Palette.Skip(1).ToArray();
+        var group = new Group
+        {
+            Name = UniqueName("Новая группа"),
+            Color = palette[Groups.Count % palette.Length],
+        };
+        Groups.Add(group);
+        GroupList.SelectedItem = group;
+        Dispatcher.BeginInvoke(() =>
+        {
+            GroupNameBox.Focus();
+            GroupNameBox.SelectAll();
+        }, DispatcherPriority.Input);
+    }
+
+    private void Settings_Click(object sender, RoutedEventArgs e)
+    {
+        ShowView(View.Settings);
+        GroupList.SelectedItem = null;
+    }
+
+    private string UniqueName(string baseName)
+    {
+        if (!Groups.Any(g => g.Name.Equals(baseName, StringComparison.CurrentCultureIgnoreCase))) return baseName;
+        for (int i = 2; ; i++)
+        {
+            var name = $"{baseName} {i}";
+            if (!Groups.Any(g => g.Name.Equals(name, StringComparison.CurrentCultureIgnoreCase))) return name;
+        }
+    }
+
+    private void Test_Click(object sender, RoutedEventArgs e)
+    {
+        if (_group == null || sender is not FrameworkElement element) return;
+        var pt = element.PointToScreen(new Point(element.ActualWidth / 2, element.ActualHeight + 8));
+        _app.ShowPopup(_group.Id, new Native.POINT((int)pt.X, (int)pt.Y));
+    }
+
+    private void More_Click(object sender, RoutedEventArgs e)
+    {
+        if (_group == null) return;
+        var group = _group;
+        var menu = new ContextMenu { PlacementTarget = (UIElement)sender, Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom };
+        menu.Items.Add(App.MenuItem("", "Дублировать", () => DuplicateGroup(group)));
+        menu.Items.Add(App.MenuItem("", "Показать ярлык в Проводнике", () => _app.Shortcuts.Reveal(group)));
+        menu.Items.Add(App.MenuItem("", "Добавить в меню «Пуск»", () => AddToStart(group)));
+        menu.Items.Add(App.MenuItem("", "Ярлык на рабочем столе", () =>
+        {
+            _app.Shortcuts.AddToDesktop(group);
+            ShowToast("Ярлык группы создан на рабочем столе");
+        }));
+        menu.Items.Add(new Separator());
+        var delete = App.MenuItem("", "Удалить группу", () => DeleteGroup(group));
+        delete.SetResourceReference(ForegroundProperty, "Brush.Danger");
+        menu.Items.Add(delete);
+        menu.IsOpen = true;
+    }
+
+    private void DuplicateGroup(Group group)
+    {
+        var copy = group.Duplicate(UniqueName(group.Name + " — копия"));
+        Groups.Insert(Groups.IndexOf(group) + 1, copy);
+        GroupList.SelectedItem = copy;
+    }
+
+    private void DeleteGroup(Group group)
+    {
+        int index = Groups.IndexOf(group);
+        if (index < 0) return;
+        Groups.Remove(group);
+        if (Groups.Count > 0) GroupList.SelectedIndex = Math.Min(index, Groups.Count - 1);
+
+        ShowToast($"Группа «{group.Name}» удалена", "Отменить",
+            action: () =>
+            {
+                Groups.Insert(Math.Min(index, Groups.Count), group);
+                GroupList.SelectedItem = group;
+            },
+            onExpire: () => _app.Shortcuts.Remove(group));
+    }
+
+    // ================= Закрепление =================
+
+    private void Pin_Click(object sender, RoutedEventArgs e)
+    {
+        if (_group == null) return;
+        _app.Shortcuts.Update(_group);
+        PinStatus.Text = _app.Shortcuts.IsPinned(_group)
+            ? "Эта группа уже закреплена ✓  Если значок пропал с панели, закрепите его ещё раз любым способом ниже."
+            : "Windows не даёт программам закрепляться самостоятельно, поэтому последний шаг — за вами. Это займёт пару секунд.";
+        ShowOverlay(PinPanel);
+    }
+
+    private void PinChip_MouseDown(object sender, MouseButtonEventArgs e) => _chipStart = e.GetPosition(this);
+
+    private void PinChip_MouseMove(object sender, MouseEventArgs e)
+    {
+        if (_group == null || e.LeftButton != MouseButtonState.Pressed) return;
+        var delta = e.GetPosition(this) - _chipStart;
+        if (Math.Abs(delta.X) < SystemParameters.MinimumHorizontalDragDistance &&
+            Math.Abs(delta.Y) < SystemParameters.MinimumVerticalDragDistance) return;
+
+        var path = _app.Shortcuts.Update(_group);
+        _draggingOut = true;
+        try
+        {
+            var data = new DataObject(DataFormats.FileDrop, new[] { path });
+            DragDrop.DoDragDrop(PinChip, data, DragDropEffects.Copy | DragDropEffects.Link);
+        }
+        finally
+        {
+            _draggingOut = false;
+        }
+
+        var group = _group;
+        var check = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1.2) };
+        check.Tick += (_, _) =>
+        {
+            check.Stop();
+            if (group != _group || !_app.Shortcuts.IsPinned(group)) return;
+            CloseOverlay();
+            ShowToast($"Готово! «{group.Name}» закреплена на панели задач");
+        };
+        check.Start();
+    }
+
+    private void RevealLink_Click(object sender, RoutedEventArgs e)
+    {
+        if (_group != null) _app.Shortcuts.Reveal(_group);
+    }
+
+    private void AddToStart_Click(object sender, RoutedEventArgs e)
+    {
+        if (_group != null) AddToStart(_group);
+    }
+
+    private void AddToStart(Group group)
+    {
+        _app.Shortcuts.AddToStartMenu(group);
+        ShowToast($"«{group.Name}» добавлена в меню «Пуск» → Futuretray");
+    }
+
+    // ================= Элементы группы =================
+
+    private void AddItems(IEnumerable<LaunchItem> items)
+    {
+        if (_group == null) return;
+        LaunchItem? last = null;
+        int count = 0;
+        foreach (var item in items)
+        {
+            _group.Items.Add(item);
+            last = item;
+            count++;
+        }
+        if (last == null) return;
+        ItemsList.SelectedItem = last;
+        ItemsList.ScrollIntoView(last);
+        if (count > 1) ShowToast($"Добавлено: {count} {AppsCountConverter.Plural(count, "элемент", "элемента", "элементов")}");
+    }
+
+    private async void AddApp_Click(object sender, RoutedEventArgs e)
+    {
+        ShowOverlay(PickerPanel);
+        PickerSearch.Text = "";
+        PickerSearch.Focus();
+
+        if (_installed == null)
+        {
+            PickerLoading.Visibility = Visibility.Visible;
+            try
+            {
+                _installed = await ItemFactory.EnumerateInstalledAsync();
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Installed apps");
+                _installed = new List<InstalledApp>();
+            }
+            PickerLoading.Text = "Ничего не найдено";
+            PickerLoading.Visibility = _installed.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+            foreach (var app in _installed)
+                app.PropertyChanged += (_, args) =>
+                {
+                    if (args.PropertyName == nameof(InstalledApp.IsSelected)) UpdatePickerCount();
+                };
+            _installedView = CollectionViewSource.GetDefaultView(_installed);
+            _installedView.Filter = o => o is InstalledApp a && MatchesSearch(a, PickerSearch.Text);
+            PickerList.ItemsSource = _installedView;
+            LoadPickerIcons(_installed);
+        }
+        else
+        {
+            foreach (var app in _installed) app.IsSelected = false;
+            _installedView?.Refresh();
+        }
+        UpdatePickerCount();
+    }
+
+    private static bool MatchesSearch(InstalledApp app, string query) =>
+        string.IsNullOrWhiteSpace(query) ||
+        app.Name.Contains(query.Trim(), StringComparison.CurrentCultureIgnoreCase) ||
+        (app.FilePath?.Contains(query.Trim(), StringComparison.OrdinalIgnoreCase) ?? false);
+
+    private void LoadPickerIcons(List<InstalledApp> apps)
+    {
+        var icons = _app.Icons;
+        var thread = new Thread(() =>
+        {
+            foreach (var app in apps)
+            {
+                try
+                {
+                    var icon = icons.GetShell(app.FilePath ?? @"shell:AppsFolder\" + app.ParsingName, 64);
+                    if (icon != null) Dispatcher.BeginInvoke(() => app.Icon = icon, DispatcherPriority.Background);
+                }
+                catch
+                {
+                    // пропускаем
+                }
+            }
+        })
+        { IsBackground = true, Name = "Picker icons" };
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
+    }
+
+    private void PickerSearch_TextChanged(object sender, TextChangedEventArgs e) => _installedView?.Refresh();
+
+    private void PickerSearch_KeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Down && PickerList.Items.Count > 0)
+        {
+            PickerList.Focus();
+            (PickerList.ItemContainerGenerator.ContainerFromIndex(0) as ListBoxItem)?.Focus();
+            e.Handled = true;
+        }
+        else if (e.Key == Key.Enter)
+        {
+            if (_installed?.Any(a => a.IsSelected) != true && PickerList.Items.Count > 0 && PickerList.Items[0] is InstalledApp first)
+                first.IsSelected = true;
+            PickerAdd_Click(sender, e);
+            e.Handled = true;
+        }
+    }
+
+    private void UpdatePickerCount()
+    {
+        int n = _installed?.Count(a => a.IsSelected) ?? 0;
+        PickerCount.Text = n == 0 ? "Ничего не выбрано" : $"Выбрано: {n}";
+        PickerAddButton.IsEnabled = n > 0;
+    }
+
+    private void PickerList_DoubleClick(object sender, MouseButtonEventArgs e)
+    {
+        if ((e.OriginalSource as DependencyObject) is { } source &&
+            ItemsControl.ContainerFromElement(PickerList, source) is ListBoxItem { DataContext: InstalledApp app })
+        {
+            app.IsSelected = true;
+            PickerAdd_Click(sender, e);
+        }
+    }
+
+    private void PickerAdd_Click(object sender, RoutedEventArgs e)
+    {
+        var selected = _installed?.Where(a => a.IsSelected).ToList() ?? new();
+        if (selected.Count == 0) return;
+        CloseOverlay();
+        AddItems(selected.Select(ItemFactory.FromInstalled));
+    }
+
+    private void AddFile_Click(object sender, RoutedEventArgs e)
+    {
+        var dialog = new OpenFileDialog
+        {
+            Title = "Выберите программы, ярлыки или файлы",
+            Multiselect = true,
+            DereferenceLinks = false,
+            Filter = "Программы и ярлыки|*.exe;*.lnk;*.url;*.bat;*.cmd;*.ps1;*.appref-ms|Все файлы|*.*",
+        };
+        if (dialog.ShowDialog(this) == true) AddItems(dialog.FileNames.Select(ItemFactory.FromPath));
+    }
+
+    private void AddFolder_Click(object sender, RoutedEventArgs e)
+    {
+        var dialog = new OpenFolderDialog { Title = "Выберите папки", Multiselect = true };
+        if (dialog.ShowDialog(this) == true) AddItems(dialog.FolderNames.Select(ItemFactory.FromPath));
+    }
+
+    private void AddUrl_Click(object sender, RoutedEventArgs e)
+    {
+        UrlBox.Text = "";
+        UrlNameBox.Text = "";
+        if (Clipboard.ContainsText() && ItemFactory.LooksLikeUrl(Clipboard.GetText())) UrlBox.Text = Clipboard.GetText().Trim();
+        ShowOverlay(UrlPanel);
+        UrlBox.Focus();
+        UrlBox.SelectAll();
+    }
+
+    private void UrlBox_KeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key != Key.Enter) return;
+        UrlAdd_Click(sender, e);
+        e.Handled = true;
+    }
+
+    private void UrlAdd_Click(object sender, RoutedEventArgs e)
+    {
+        if (string.IsNullOrWhiteSpace(UrlBox.Text))
+        {
+            UrlBox.Focus();
+            return;
+        }
+        CloseOverlay();
+        AddItems(new[] { ItemFactory.FromUrl(UrlBox.Text, UrlNameBox.Text) });
+    }
+
+    private void ItemsList_SelectionChanged(object sender, SelectionChangedEventArgs e) => UpdateItemCard();
+
+    private void UpdateItemCard()
+    {
+        ItemCard.DataContext = SelectedItem;
+        ItemCard.Visibility = SelectedItem == null ? Visibility.Collapsed : Visibility.Visible;
+    }
+
+    private void ItemsList_KeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Delete && SelectedItem is { } item)
+        {
+            RemoveItem(item);
+            e.Handled = true;
+        }
+    }
+
+    private void RemoveItem_Click(object sender, RoutedEventArgs e)
+    {
+        if (SelectedItem is { } item) RemoveItem(item);
+    }
+
+    private void RemoveItem(LaunchItem item)
+    {
+        if (_group == null) return;
+        var group = _group;
+        int index = group.Items.IndexOf(item);
+        if (index < 0) return;
+        group.Items.Remove(item);
+        if (group.Items.Count > 0) ItemsList.SelectedIndex = Math.Min(index, group.Items.Count - 1);
+        ShowToast($"«{item.Name}» удалено из группы", "Отменить", () =>
+        {
+            group.Items.Insert(Math.Min(index, group.Items.Count), item);
+            if (group == _group) ItemsList.SelectedItem = item;
+        });
+    }
+
+    private void RunItem_Click(object sender, RoutedEventArgs e)
+    {
+        if (SelectedItem is { } item && Launcher.Launch(item) is { } error) ShowToast(error);
+    }
+
+    private void OpenItemLocation_Click(object sender, RoutedEventArgs e)
+    {
+        if (SelectedItem is { } item) Launcher.OpenLocation(item);
+    }
+
+    private void BrowseTarget_Click(object sender, RoutedEventArgs e)
+    {
+        if (SelectedItem is not { } item) return;
+        var dialog = new OpenFileDialog { Title = "Выберите файл", DereferenceLinks = false, Filter = "Все файлы|*.*" };
+        if (dialog.ShowDialog(this) != true) return;
+        var fresh = ItemFactory.FromPath(dialog.FileName);
+        item.Kind = ItemKind.Path;
+        item.Target = fresh.Target;
+        if (string.IsNullOrWhiteSpace(item.Name)) item.Name = fresh.Name;
+    }
+
+    private void ItemIcon_Click(object sender, RoutedEventArgs e)
+    {
+        if (SelectedItem is { } item && PickIconFile() is { } path) item.CustomIconPath = path;
+    }
+
+    private void ResetItemIcon_Click(object sender, RoutedEventArgs e)
+    {
+        if (SelectedItem is { } item) item.CustomIconPath = null;
+    }
+
+    private string? PickIconFile()
+    {
+        var dialog = new OpenFileDialog
+        {
+            Title = "Выберите картинку или значок",
+            Filter = "Картинки и значки|*.png;*.jpg;*.jpeg;*.bmp;*.ico;*.exe;*.dll|Все файлы|*.*",
+        };
+        if (dialog.ShowDialog(this) != true) return null;
+        var ext = Path.GetExtension(dialog.FileName).ToLowerInvariant();
+        if (ext is ".exe" or ".dll") return dialog.FileName;
+        try
+        {
+            // Копируем к себе, чтобы иконка не пропала, если исходный файл удалят.
+            var dir = Path.Combine(ConfigStore.DataDir, "UserIcons");
+            Directory.CreateDirectory(dir);
+            var dest = Path.Combine(dir, Ids.New() + ext);
+            File.Copy(dialog.FileName, dest, true);
+            return dest;
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Copy icon");
+            return dialog.FileName;
+        }
+    }
+
+    // ================= Перетаскивание из Проводника/браузера =================
+
+    private void Editor_DragOver(object sender, DragEventArgs e)
+    {
+        if (e.Handled) return;
+        bool accept = !_draggingOut && _group != null &&
+                      (e.Data.GetDataPresent(DataFormats.FileDrop) || DroppedUrl(e.Data) != null);
+        e.Effects = accept ? DragDropEffects.Copy : DragDropEffects.None;
+        SetDropHighlight(accept);
+        e.Handled = true;
+    }
+
+    private void Editor_DragLeave(object sender, DragEventArgs e) => SetDropHighlight(false);
+
+    private void Editor_Drop(object sender, DragEventArgs e)
+    {
+        SetDropHighlight(false);
+        if (e.Handled || _draggingOut || _group == null) return;
+        if (e.Data.GetData(DataFormats.FileDrop) is string[] files && files.Length > 0)
+            AddItems(files.Select(ItemFactory.FromPath));
+        else if (DroppedUrl(e.Data) is { } url)
+            AddItems(new[] { ItemFactory.FromUrl(url) });
+        e.Handled = true;
+    }
+
+    private static string? DroppedUrl(IDataObject data)
+    {
+        try
+        {
+            if (data.GetData(DataFormats.UnicodeText) is string text && ItemFactory.LooksLikeUrl(text))
+                return text.Trim().Split('\n')[0].Trim();
+        }
+        catch
+        {
+            // некоторые источники отдают битые данные
+        }
+        return null;
+    }
+
+    private void SetDropHighlight(bool on)
+    {
+        if (on)
+        {
+            DropHintFrame.SetResourceReference(System.Windows.Shapes.Shape.StrokeProperty, "Brush.Accent");
+            DropHintFrame.Opacity = 1;
+            DropHintText.Text = "Отпустите, чтобы добавить в группу";
+        }
+        else
+        {
+            DropHintFrame.SetResourceReference(System.Windows.Shapes.Shape.StrokeProperty, "Brush.ControlStrong");
+            DropHintFrame.Opacity = 0.5;
+            DropHintText.Text = "Перетащите сюда программы, ярлыки, папки, файлы или ссылки из браузера";
+        }
+    }
+
+    // ================= Внешний вид =================
+
+    private void BuildSwatches()
+    {
+        SwatchPanel.Children.Clear();
+        if (_group == null) return;
+        foreach (var value in ColorUtil.Palette)
+        {
+            var swatch = new RadioButton
+            {
+                Style = (Style)FindResource("Swatch"),
+                GroupName = "GroupColor",
+                Background = ColorUtil.Brush(ColorUtil.Resolve(value)),
+                ToolTip = value == "accent" ? "Цвет акцента Windows" : value,
+                IsChecked = string.Equals(_group.Color, value, StringComparison.OrdinalIgnoreCase),
+            };
+            if (value == "accent")
+                swatch.Content = new TextBlock { Text = "", FontFamily = (FontFamily)FindResource("Font.Icons"), FontSize = 10, Foreground = Brushes.White };
+            var captured = value;
+            swatch.Checked += (_, _) =>
+            {
+                if (_group != null) _group.Color = captured;
+            };
+            SwatchPanel.Children.Add(swatch);
+        }
+        if (!HexBox.IsKeyboardFocused) HexBox.Text = ColorUtil.ToHex(ColorUtil.Resolve(_group.Color));
+    }
+
+    private void HexBox_LostFocus(object sender, RoutedEventArgs e) => ApplyHex();
+
+    private void HexBox_KeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Enter) ApplyHex();
+    }
+
+    private void ApplyHex()
+    {
+        if (_group == null) return;
+        if (ColorUtil.TryParse(HexBox.Text, out var color)) _group.Color = ColorUtil.ToHex(color);
+        else HexBox.Text = ColorUtil.ToHex(ColorUtil.Resolve(_group.Color));
+    }
+
+    private void UpdatePreviewTint()
+    {
+        if (_group == null) return;
+        PreviewTint.Background = ColorUtil.Brush(ColorUtil.WithAlpha(ColorUtil.Resolve(_group.Color), _group.TintOpacity));
+    }
+
+    private void UpdateIconPanels()
+    {
+        if (_group == null) return;
+        IconChoicePanel.Visibility = _group.IconMode == GroupIconMode.Item ? Visibility.Visible : Visibility.Collapsed;
+        CustomIconPanel.Visibility = _group.IconMode == GroupIconMode.Custom ? Visibility.Visible : Visibility.Collapsed;
+        CustomIconName.Text = _group.CustomIconPath != null ? Path.GetFileName(_group.CustomIconPath) : "";
+
+        if (_group.IconMode != GroupIconMode.Item) return;
+        IconChoicePanel.Children.Clear();
+        var selectedId = _group.Items.FirstOrDefault(i => i.Id == _group.IconItemId)?.Id ?? _group.Items.FirstOrDefault()?.Id;
+        foreach (var item in _group.Items)
+        {
+            var choice = new RadioButton
+            {
+                Style = (Style)FindResource("Swatch"),
+                GroupName = "IconChoice",
+                Width = 40,
+                Height = 40,
+                Background = Brushes.Transparent,
+                ToolTip = item.Name,
+                IsChecked = item.Id == selectedId,
+                Content = new Image { Source = item.Icon, Width = 24, Height = 24 },
+            };
+            var captured = item;
+            choice.Checked += (_, _) =>
+            {
+                if (_group != null) _group.IconItemId = captured.Id;
+            };
+            IconChoicePanel.Children.Add(choice);
+        }
+        if (_group.Items.Count == 0)
+            IconChoicePanel.Children.Add(new TextBlock { Text = "Сначала добавьте приложения", Style = (Style)FindResource("Text.Caption") });
+    }
+
+    private void PickGroupIcon_Click(object sender, RoutedEventArgs e)
+    {
+        if (_group == null) return;
+        var path = PickIconFile();
+        if (path != null)
+        {
+            _group.CustomIconPath = path;
+            _group.IconMode = GroupIconMode.Custom;
+        }
+        else if (_group.CustomIconPath == null)
+        {
+            _group.IconMode = GroupIconMode.Auto;
+        }
+    }
+
+    // ================= Настройки =================
+
+    private void Export_Click(object sender, RoutedEventArgs e)
+    {
+        var dialog = new SaveFileDialog { Title = "Экспорт групп", FileName = "Futuretray-группы.json", Filter = "Futuretray (*.json)|*.json" };
+        if (dialog.ShowDialog(this) != true) return;
+        try
+        {
+            File.WriteAllText(dialog.FileName, JsonSerializer.Serialize(Groups.ToList(), ConfigStore.JsonOptions));
+            ShowToast($"Сохранено групп: {Groups.Count}");
+        }
+        catch (Exception ex)
+        {
+            ShowToast("Не удалось сохранить: " + ex.Message);
+        }
+    }
+
+    private void Import_Click(object sender, RoutedEventArgs e)
+    {
+        var dialog = new OpenFileDialog { Title = "Импорт групп", Filter = "Futuretray (*.json)|*.json|Все файлы|*.*" };
+        if (dialog.ShowDialog(this) != true) return;
+        try
+        {
+            var json = File.ReadAllText(dialog.FileName);
+            List<Group>? groups;
+            try
+            {
+                groups = JsonSerializer.Deserialize<List<Group>>(json, ConfigStore.JsonOptions);
+            }
+            catch (JsonException)
+            {
+                groups = JsonSerializer.Deserialize<AppConfig>(json, ConfigStore.JsonOptions)?.Groups.ToList();
+            }
+            if (groups == null || groups.Count == 0)
+            {
+                ShowToast("В файле нет групп");
+                return;
+            }
+            foreach (var g in groups)
+            {
+                g.Id = Ids.New();
+                foreach (var item in g.Items) item.Id = Ids.New();
+                g.Name = UniqueName(g.Name);
+                Groups.Add(g);
+            }
+            GroupList.SelectedItem = groups[0];
+            ShowToast($"Импортировано групп: {groups.Count}");
+        }
+        catch (Exception ex)
+        {
+            ShowToast("Не удалось прочитать файл: " + ex.Message);
+        }
+    }
+
+    private void OpenDataFolder_Click(object sender, RoutedEventArgs e) => Launcher.OpenFolder(ConfigStore.DataDir);
+
+    private void Exit_Click(object sender, RoutedEventArgs e) => _app.ExitApp();
+
+    // ================= Диалоги =================
+
+    private void ShowOverlay(FrameworkElement panel)
+    {
+        foreach (var p in new FrameworkElement[] { PinPanel, PickerPanel, UrlPanel })
+            p.Visibility = p == panel ? Visibility.Visible : Visibility.Collapsed;
+        Overlay.Visibility = Visibility.Visible;
+
+        var ease = new ExponentialEase { EasingMode = EasingMode.EaseOut, Exponent = 5 };
+        var scale = (ScaleTransform)DialogCard.RenderTransform;
+        scale.BeginAnimation(ScaleTransform.ScaleXProperty, new DoubleAnimation(0.96, 1, TimeSpan.FromMilliseconds(220)) { EasingFunction = ease });
+        scale.BeginAnimation(ScaleTransform.ScaleYProperty, new DoubleAnimation(0.96, 1, TimeSpan.FromMilliseconds(220)) { EasingFunction = ease });
+        Overlay.BeginAnimation(OpacityProperty, new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(140)));
+    }
+
+    private void CloseOverlay() => Overlay.Visibility = Visibility.Collapsed;
+
+    private void CloseOverlay_Click(object sender, RoutedEventArgs e) => CloseOverlay();
+
+    private void Overlay_BackgroundClick(object sender, MouseButtonEventArgs e) => CloseOverlay();
+
+    // ================= Уведомления =================
+
+    public void ShowToast(string text, string? actionText = null, Action? action = null, Action? onExpire = null)
+    {
+        FlushToast();
+        _toastAction = action;
+        _toastExpire = onExpire;
+        ToastText.Text = text;
+        ToastAction.Content = actionText;
+        ToastAction.Visibility = actionText == null ? Visibility.Collapsed : Visibility.Visible;
+        Toast.Visibility = Visibility.Visible;
+        Toast.BeginAnimation(OpacityProperty, new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(160)));
+
+        _toastTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(action != null ? 7 : 4) };
+        _toastTimer.Tick += (_, _) => FlushToast();
+        _toastTimer.Start();
+    }
+
+    /// <summary>Скрывает уведомление и окончательно применяет отложенное действие (например, удаление ярлыков).</summary>
+    private void FlushToast()
+    {
+        _toastTimer?.Stop();
+        _toastTimer = null;
+        var expire = _toastExpire;
+        _toastExpire = null;
+        _toastAction = null;
+        Toast.Visibility = Visibility.Collapsed;
+        expire?.Invoke();
+    }
+
+    private void ToastAction_Click(object sender, RoutedEventArgs e)
+    {
+        var action = _toastAction;
+        _toastExpire = null;
+        FlushToast();
+        action?.Invoke();
+    }
+
+    private void ToastClose_Click(object sender, RoutedEventArgs e) => FlushToast();
+
+#if DEBUG
+    internal void SnapshotSelectFirstItem()
+    {
+        Left = -4000;
+        ItemsList.SelectedIndex = 0;
+    }
+
+    internal void SnapshotScroll(double offset) => EditorScroll.ScrollToVerticalOffset(offset);
+
+    internal void SnapshotShowPin()
+    {
+        EditorScroll.ScrollToTop();
+        Pin_Click(this, new RoutedEventArgs());
+    }
+
+    internal void SnapshotShowSettings()
+    {
+        CloseOverlay();
+        Settings_Click(this, new RoutedEventArgs());
+    }
+
+    internal void SnapshotSelectGroup(int index) => GroupList.SelectedIndex = index;
+#endif
+}

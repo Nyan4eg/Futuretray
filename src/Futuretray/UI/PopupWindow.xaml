@@ -1,0 +1,31 @@
+<Window x:Class="Futuretray.UI.PopupWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ui="clr-namespace:Futuretray.UI"
+        Title="Futuretray"
+        WindowStyle="SingleBorderWindow" ResizeMode="NoResize" ShowInTaskbar="False" Topmost="True"
+        WindowStartupLocation="Manual" ShowActivated="True"
+        Width="200" Height="80" Background="Transparent"
+        Foreground="{DynamicResource Brush.Text}" FontFamily="{StaticResource Font.Text}" FontSize="13"
+        UseLayoutRounding="True">
+    <Grid x:Name="Root" Background="Transparent">
+        <Border x:Name="SolidLayer" Background="{DynamicResource Brush.PopupSolid}" Visibility="Collapsed"/>
+        <Border x:Name="TintLayer" IsHitTestVisible="False"/>
+
+        <Grid x:Name="Body" Margin="6" HorizontalAlignment="Left" VerticalAlignment="Top">
+            <Grid.RenderTransform>
+                <TranslateTransform/>
+            </Grid.RenderTransform>
+            <ui:GroupTilesView x:Name="Tiles"/>
+        </Grid>
+
+        <Border x:Name="StatusPill" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="8,0,8,6"
+                Background="{DynamicResource Brush.Flyout}" BorderBrush="{DynamicResource Brush.FlyoutStroke}" BorderThickness="1"
+                CornerRadius="11" Padding="10,3,12,4" Visibility="Collapsed" IsHitTestVisible="False">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock x:Name="StatusGlyph" Style="{StaticResource Text.Glyph}" FontSize="12" Margin="0,1,7,0"/>
+                <TextBlock x:Name="StatusText" FontSize="12" TextTrimming="CharacterEllipsis" MaxWidth="320"/>
+            </StackPanel>
+        </Border>
+    </Grid>
+</Window>
