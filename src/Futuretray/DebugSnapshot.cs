@@ -76,6 +76,7 @@ internal static class DebugSnapshot
                 if (i == steps.Count)
                 {
                     timer.Stop();
+                    await CheckDockLayoutAsync(app, dir);
                     SaveRunning(app, dir);
                     await CheckFeaturesAsync(app, dir);
                     SavePopup(app, dir);
@@ -114,6 +115,13 @@ internal static class DebugSnapshot
             t.BeginAnimation(TranslateTransform.YProperty, null);
             popup.UpdateLayout();
             Save(popup, Path.Combine(dir, $"popup-{idx}.png"));
+
+            // То же окно, как его увидит пользователь с панелью задач слева.
+            popup.Tiles.AlongVerticalTaskbar = true;
+            popup.Tiles.Rebuild();
+            popup.UpdateSize();
+            popup.UpdateLayout();
+            Save(popup, Path.Combine(dir, $"popup-{idx}-vertical-taskbar.png"));
             popup.Close();
         }
     }
@@ -257,6 +265,83 @@ internal static class DebugSnapshot
         encoder.Frames.Add(BitmapFrame.Create(rtb));
         using var fs = File.Create(Path.Combine(dir, "hero.png"));
         encoder.Save(fs);
+    }
+
+    /// <summary>Ориентация трея после старта и после смены края (ловим «вертикальный трей снизу»).</summary>
+    private static async Task CheckDockLayoutAsync(App app, string dir)
+    {
+        var sb = new System.Text.StringBuilder();
+        var g = app.Store.Config.Groups[0];
+
+        async Task Report(DockWindow dock, string title)
+        {
+            for (int i = 0; i < 6; i++) await Task.Delay(150); // даём отработать отложенным перерисовкам
+            var tiles = dock.Tiles.Tiles;
+            string layout = tiles.Count < 2 ? "?" :
+                Math.Abs(tiles[0].TranslatePoint(new Point(), dock.Body).Y - tiles[1].TranslatePoint(new Point(), dock.Body).Y) < 1 ? "ряд" : "столбец";
+            Native.GetWindowRect(new System.Windows.Interop.WindowInteropHelper(dock).Handle, out var r);
+            sb.AppendLine($"{title}: край={g.DockEdge} Body={dock.Body.Orientation} Line={dock.Tiles.Line} плитки={layout} окно={r.Width}x{r.Height}");
+        }
+
+        // 1) Старт сразу «снизу».
+        g.DockEdge = DockEdge.Bottom;
+        var fresh = new DockWindow(g);
+        fresh.Apply();
+        await Report(fresh, "старт снизу");
+        fresh.CloseDock();
+
+        // 2) Переход «слева → снизу» на одном окне — как при смене положения в редакторе.
+        g.DockEdge = DockEdge.Left;
+        var dock = new DockWindow(g);
+        dock.Apply();
+        await Report(dock, "слева");
+        g.DockEdge = DockEdge.Bottom;
+        dock.Apply();
+        await Report(dock, "слева → снизу");
+
+        // 3) «Свободно → снизу».
+        g.DockEdge = DockEdge.Free;
+        dock.Apply();
+        await Report(dock, "свободно");
+        g.DockEdge = DockEdge.Bottom;
+        dock.Apply();
+        await Report(dock, "свободно → снизу");
+        dock.CloseDock();
+
+        // 4) Настоящий путь программы: DockManager реагирует на изменения группы, как из редактора.
+        var other = app.Store.Config.Groups[2];
+        other.DockEdge = DockEdge.Bottom;
+        var manager = new DockManager(app.Store);
+        DockWindow Find() => Application.Current.Windows.OfType<DockWindow>().First(d => d.Group == other);
+
+        other.DockEnabled = true;
+        await Report2("менеджер: включили, снизу");
+        other.DockEdge = DockEdge.Left;
+        await Report2("менеджер: снизу → слева");
+        other.DockEdge = DockEdge.Bottom;
+        await Report2("менеджер: слева → снизу");
+        other.DockEnabled = false;
+        await Task.Delay(500);
+        manager.SyncAll();
+        var restarted = new DockManager(app.Store);
+        other.DockEnabled = true;
+        restarted.SyncAll();
+        await Report2("менеджер: перезапуск, снизу");
+        manager.CloseAll();
+        restarted.CloseAll();
+
+        async Task Report2(string title)
+        {
+            for (int i = 0; i < 8; i++) await Task.Delay(150);
+            var dock = Find();
+            var tiles = dock.Tiles.Tiles;
+            string layout = tiles.Count < 2 ? "?" :
+                Math.Abs(tiles[0].TranslatePoint(new Point(), dock.Body).Y - tiles[1].TranslatePoint(new Point(), dock.Body).Y) < 1 ? "ряд" : "столбец";
+            Native.GetWindowRect(new System.Windows.Interop.WindowInteropHelper(dock).Handle, out var r);
+            sb.AppendLine($"{title}: край={other.DockEdge} Body={dock.Body.Orientation} Line={dock.Tiles.Line} плитки={layout} окно={r.Width}x{r.Height} @{r.Left},{r.Top}");
+        }
+
+        File.WriteAllText(Path.Combine(dir, "dock-layout.txt"), sb.ToString());
     }
 
     private static void SaveSearch(string dir)

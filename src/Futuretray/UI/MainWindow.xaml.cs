@@ -243,6 +243,11 @@ public partial class MainWindow : Window
             case nameof(Group.DockMonitor):
                 Dispatcher.BeginInvoke(BuildMonitorChoices);
                 break;
+            case nameof(Group.DockEnabled) when _group is { DockEnabled: true, DockPlaced: false } g:
+                var primary = Monitors.Find(g.DockMonitor);
+                var center = new Native.POINT((primary.Bounds.Left + primary.Bounds.Right) / 2, (primary.Bounds.Top + primary.Bounds.Bottom) / 2);
+                g.PlaceDockNextToTaskbar(TaskbarInfo.Locate(center).Edge);
+                break;
             case nameof(Group.IconMode):
                 if (_group?.IconMode == GroupIconMode.Custom && _group.CustomIconPath == null)
                     Dispatcher.BeginInvoke(() => PickGroupIcon_Click(this, new RoutedEventArgs()));

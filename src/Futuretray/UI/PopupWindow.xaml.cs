@@ -56,6 +56,13 @@ public partial class PopupWindow : Window
         _cursor = cursor;
         _placement = TaskbarInfo.Locate(cursor);
 
+        bool alongVertical = _placement.FromTaskbar && _placement.Edge is TaskbarEdge.Left or TaskbarEdge.Right;
+        if (Tiles.AlongVerticalTaskbar != alongVertical)
+        {
+            Tiles.AlongVerticalTaskbar = alongVertical;
+            Tiles.Rebuild();
+        }
+
         // Сначала переносим окно на нужный монитор, чтобы WPF применил его масштаб.
         Native.SetWindowPos(Hwnd, IntPtr.Zero, _placement.Available.Left, _placement.Available.Top, 0, 0,
             Native.SWP_NOSIZE | Native.SWP_NOZORDER | Native.SWP_NOACTIVATE);
@@ -98,7 +105,7 @@ public partial class PopupWindow : Window
         TintLayer.Background = ColorUtil.Brush(ColorUtil.WithAlpha(ColorUtil.Resolve(Group.Color), Group.TintOpacity));
     }
 
-    private void UpdateSize()
+    internal void UpdateSize()
     {
         Body.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
         var size = Body.DesiredSize;

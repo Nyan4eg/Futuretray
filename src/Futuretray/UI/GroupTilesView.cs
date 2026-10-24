@@ -89,11 +89,25 @@ public sealed class GroupTilesView : ContentControl
         _ => (g.ShowLabels ? 80 : 54, g.ShowLabels ? 82 : 54, 32),
     };
 
-    public static int ColumnsFor(Group g)
+    /// <summary>Окно группы у вертикальной панели задач: раскладываем плитки столбцом вдоль неё.</summary>
+    public bool AlongVerticalTaskbar { get; set; }
+
+    public static int ColumnsFor(Group g, bool alongVerticalTaskbar = false)
     {
         int n = Math.Max(g.Items.Count, 1);
         if (g.Columns > 0) return Math.Min(g.Columns, n);
-        return n <= 6 ? n : (int)Math.Ceiling(Math.Sqrt(n * 1.6));
+        return AutoColumns(n, alongVerticalTaskbar);
+    }
+
+    /// <summary>
+    /// Автоматическое число колонок. У вертикальной панели сетка «поворачивается»: до 6 программ — один столбец,
+    /// дальше столько столбцов, сколько было бы рядов у горизонтальной панели.
+    /// </summary>
+    public static int AutoColumns(int n, bool alongVerticalTaskbar)
+    {
+        n = Math.Max(n, 1);
+        int columns = n <= 6 ? n : (int)Math.Ceiling(Math.Sqrt(n * 1.6));
+        return alongVerticalTaskbar ? (int)Math.Ceiling(n / (double)columns) : columns;
     }
 
     public void Rebuild()
@@ -108,7 +122,7 @@ public sealed class GroupTilesView : ContentControl
         {
             Orientation.Horizontal => Math.Max(g.Items.Count, 1),
             Orientation.Vertical => 1,
-            _ => ColumnsFor(g),
+            _ => ColumnsFor(g, AlongVerticalTaskbar),
         };
 
         if (g.Items.Count == 0)

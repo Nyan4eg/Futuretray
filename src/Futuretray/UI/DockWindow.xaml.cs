@@ -124,6 +124,15 @@ public partial class DockWindow : Window
         Reposition();
         ApplyZOrder();
         UpdateAutoHideTimer();
+
+        // Подстраховка: когда окно уже показано и разложено (а масштаб монитора применён),
+        // ещё раз сверяем раскладку и положение с настройками.
+        Dispatcher.BeginInvoke(() =>
+        {
+            if (!IsVisible) return;
+            ApplyLayout();
+            Reposition();
+        }, System.Windows.Threading.DispatcherPriority.Loaded);
     }
 
     private void ApplyAppearance()

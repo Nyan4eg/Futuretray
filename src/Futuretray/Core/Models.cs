@@ -133,6 +133,7 @@ public sealed class Group : Observable
     private int? _dockY;
     private string? _hotkey;
     private string? _sourceFolder;
+    private bool _dockPlaced;
 
     public Group()
     {
@@ -204,6 +205,27 @@ public sealed class Group : Observable
     /// <summary>Положение в свободном режиме (физические пиксели, левый верхний угол).</summary>
     public int? DockX { get => _dockX; set => Set(ref _dockX, value); }
     public int? DockY { get => _dockY; set => Set(ref _dockY, value); }
+
+    /// <summary>Трей уже ставили к краю при первом включении — дальше положение выбирает пользователь.</summary>
+    public bool DockPlaced { get => _dockPlaced; set => Set(ref _dockPlaced, value); }
+
+    /// <summary>
+    /// Первое включение трея: ставим его к той же стороне экрана, где панель задач
+    /// (снизу — рядом снизу, слева — столбцом слева), а не всегда слева.
+    /// </summary>
+    public void PlaceDockNextToTaskbar(TaskbarEdge taskbarEdge)
+    {
+        if (DockPlaced) return;
+        DockPlaced = true;
+        if (DockEdge != DockEdge.Left || DockX != null) return; // пользователь уже что-то выбрал
+        DockEdge = taskbarEdge switch
+        {
+            TaskbarEdge.Top => DockEdge.Top,
+            TaskbarEdge.Right => DockEdge.Right,
+            TaskbarEdge.Left => DockEdge.Left,
+            _ => DockEdge.Bottom,
+        };
+    }
 
     /// <summary>Глобальное сочетание клавиш, открывающее группу у курсора (например, "Ctrl+Alt+1").</summary>
     public string? Hotkey { get => _hotkey; set => Set(ref _hotkey, string.IsNullOrWhiteSpace(value) ? null : value); }
