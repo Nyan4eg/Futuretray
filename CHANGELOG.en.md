@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.12.0
+
+- **Group from open windows**: a button next to “+” in the editor (and an item in the tray icon menu) puts
+  every open app into a new group and remembers where its windows are right away. A workspace in one
+  click — just rename the group and pin it to the taskbar.
+- Apps are taken the way the Start menu knows them, with familiar names and icons. Discord, Element, Slack
+  and other Squirrel apps start through their own Update.exe, so they keep working after updates, and
+  they get their proper icons.
+- “Add to group” from an open window in search also finds the app in the Start menu.
+
 ## 1.11.0
 
 - **Groups open faster**: group icons and jump list items now start a tiny native FuturetrayLauncher.exe

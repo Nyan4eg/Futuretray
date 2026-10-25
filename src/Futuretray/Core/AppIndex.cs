@@ -32,6 +32,7 @@ public static class AppIndex
         {
             var apps = await ItemFactory.EnumerateInstalledAsync();
             Apps = apps.Where(a => !IsJunk(a.Name, a.FilePath)).ToList();
+            WindowItems.Clear(); // сопоставления окон с «Пуском» могли устареть
             _loadedAt = DateTime.Now;
             // Значки здесь не грузим: все сразу — это ~75 МБ памяти навсегда. Поиск достаёт их по мере показа.
             Updated?.Invoke();
@@ -72,6 +73,57 @@ public static class AppIndex
         var sb = new StringBuilder(length + 1);
         Native.GetWindowText(hwnd, sb, sb.Capacity);
         return sb.ToString();
+    }
+
+    /// <summary>Список уже прочитан — иначе прочитать (для разовых действий вроде «группы из окон»).</summary>
+    public static Task EnsureLoadedAsync() => _loadedAt == DateTime.MinValue ? RefreshAsync() : Task.CompletedTask;
+
+    private static readonly Dictionary<string, LaunchItem?> WindowItems = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Программа окна как элемент группы. Лучше всего — та же запись, что в меню «Пуск»: у неё человеческое
+    /// название и ярлык, который не сломается после обновления программы (у Discord exe лежит в папке
+    /// с номером версии). Запись ищем по тем же правилам, по которым узнаём запущенные программы.
+    /// Нет в «Пуске» — обычная программа по exe, приложение Store и окна ApplicationFrameHost — по AppUserModelID.
+    /// </summary>
+    public static LaunchItem? ItemForWindow(AppWindow w, RunningApps running)
+    {
+        var appId = w.AppId ?? w.ProcessAppId;
+        bool hosted = w.Path == null || w.Path.Contains(@"\WindowsApps\", StringComparison.OrdinalIgnoreCase) ||
+                      w.Path.EndsWith(@"\ApplicationFrameHost.exe", StringComparison.OrdinalIgnoreCase);
+        if (hosted && appId == null) return null;
+        var key = hosted ? "app|" + appId : "exe|" + w.Path + "|" + appId;
+        if (WindowItems.TryGetValue(key, out var cached)) return cached;
+
+        LaunchItem? item = null;
+        if (!hosted)
+            item = SquirrelItem(w.Path!) ?? Apps.Where(a => string.Equals(a.FilePath, w.Path, StringComparison.OrdinalIgnoreCase))
+                .Select(ItemFactory.FromInstalled).FirstOrDefault();
+        item ??= Apps.Select(ItemFactory.FromInstalled).FirstOrDefault(i => running.WindowsFor(i).Contains(w.Handle));
+        item ??= hosted
+            ? new LaunchItem { Kind = ItemKind.ShellApp, Target = appId!, Name = AppName(w.Path) }
+            : ItemFactory.FromPath(w.Path!);
+        return WindowItems[key] = item;
+    }
+
+    /// <summary>
+    /// Программы на Squirrel (Discord, Element, Slack) работают из папки app-&lt;версия&gt;, которая меняется
+    /// с каждым обновлением. Запускаем их так же, как их собственный ярлык: Update.exe --processStart.
+    /// </summary>
+    public static LaunchItem? SquirrelItem(string exePath)
+    {
+        var versionDir = Path.GetDirectoryName(exePath);
+        var root = versionDir == null ? null : Path.GetDirectoryName(versionDir);
+        if (root == null || !Path.GetFileName(versionDir)!.StartsWith("app-", StringComparison.OrdinalIgnoreCase)) return null;
+        var update = Path.Combine(root, "Update.exe");
+        if (!File.Exists(update)) return null;
+        return new LaunchItem
+        {
+            Kind = ItemKind.Path,
+            Target = update,
+            Arguments = $"--processStart \"{Path.GetFileName(exePath)}\"",
+            Name = AppName(exePath),
+        };
     }
 
     private static readonly Dictionary<string, string> AppNames = new(StringComparer.OrdinalIgnoreCase);

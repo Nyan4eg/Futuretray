@@ -277,6 +277,15 @@ internal static class English
         ["Готово: группы сохранены в папку синхронизации"] = "Done: groups are saved to the sync folder",
         ["Не удалось включить синхронизацию: "] = "Couldn't turn on sync: ",
         ["Не удалось записать в папку {0}"] = "Couldn't write to the folder {0}",
+        ["Группа из открытых окон"] = "Group from open windows",
+        ["Группа из открытых окон: все открытые программы и где стоят их окна"] = "Group from open windows: every open app and where its windows are",
+        ["Собрать из открытых окон"] = "Build from open windows",
+        ["Все открытые программы — в одну группу, и сразу запомнить, где стоят их окна"] =
+            "Put every open app into one group and remember where its windows are",
+        ["Собираю открытые программы…"] = "Collecting open apps…",
+        ["Не нашлось открытых программ — откройте нужные и нажмите ещё раз"] = "No open apps found — open the ones you need and try again",
+        ["Программ в группе: {0}, запомнено мест окон: {1}. Переименуйте группу и закрепите её на панели задач."] =
+            "Apps in the group: {0}, window places remembered: {1}. Rename the group and pin it to the taskbar.",
         [" · не удалось запустить: {0}"] = " · couldn't start: {0}",
         ["Синхронизация выключена — группы остались на этом компьютере"] = "Sync is off — the groups stay on this computer",
         ["Портативная версия: настройки, значки и журнал хранятся рядом с программой — {0}"] =

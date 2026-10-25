@@ -125,7 +125,7 @@ public sealed class IconService
             {
                 ItemKind.ShellApp => Shell(@"shell:AppsFolder\" + item.Target, px),
                 ItemKind.Url => Favicons.TryGet(item.Target, px) ?? BrowserIcon(px),
-                _ => Shell(Environment.ExpandEnvironmentVariables(item.Target), px),
+                _ => Shell(SquirrelExe(item) ?? Environment.ExpandEnvironmentVariables(item.Target), px),
             };
             if (image != null) return image;
         }
@@ -134,6 +134,33 @@ public sealed class IconService
             Log.Error(ex, "Icon " + item.Target);
         }
         return Fallback(item.Kind == ItemKind.Url ? "" : "", px);
+    }
+
+    /// <summary>
+    /// «Update.exe --processStart Discord.exe» (Squirrel): значок — у самой программы в самой свежей
+    /// папке app-&lt;версия&gt;, а не у Update.exe.
+    /// </summary>
+    internal static string? SquirrelExe(LaunchItem item)
+    {
+        if (item.Kind != ItemKind.Path || item.Arguments == null ||
+            !Path.GetFileName(item.Target).Equals("Update.exe", StringComparison.OrdinalIgnoreCase)) return null;
+        var parts = item.Arguments.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        int i = Array.FindIndex(parts, p => p.Equals("--processStart", StringComparison.OrdinalIgnoreCase));
+        if (i < 0 || i + 1 >= parts.Length) return null;
+        var exe = parts[i + 1].Trim('"');
+        try
+        {
+            var root = Path.GetDirectoryName(Environment.ExpandEnvironmentVariables(item.Target))!;
+            return Directory.GetDirectories(root, "app-*")
+                .Select(d => Path.Combine(d, exe))
+                .Where(File.Exists)
+                .OrderByDescending(p => Version.TryParse(Path.GetFileName(Path.GetDirectoryName(p))![4..], out var v) ? v : new Version())
+                .FirstOrDefault();
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     private BitmapSource? BrowserIcon(int px)

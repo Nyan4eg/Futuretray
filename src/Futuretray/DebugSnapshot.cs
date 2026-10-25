@@ -55,6 +55,30 @@ internal static class DebugSnapshot
     {
         var dir = Directory!;
         System.IO.Directory.CreateDirectory(dir);
+        if (Environment.GetEnvironmentVariable("FUTURETRAY_CHECK") == "fromwindows")
+        {
+            app.Dispatcher.BeginInvoke(async () =>
+            {
+                try
+                {
+                    app.ShowEditor();
+                    var editor = Current<MainWindow>()!;
+                    editor.Left = -4000;
+                    var sw = System.Diagnostics.Stopwatch.StartNew();
+                    await editor.CreateGroupFromWindowsAsync();
+                    var group = app.Store.Config.Groups[^1];
+                    var sb = new System.Text.StringBuilder($"took {sw.ElapsedMilliseconds} ms, group '{group.Name}', items {group.Items.Count}, layouts {group.Items.Count(i => i.Layouts != null)}\n");
+                    foreach (var item in group.Items)
+                        sb.AppendLine($"  {item.Name} | {item.Kind} | {item.Target} {item.Arguments} | layout={item.Layouts != null}");
+                    File.WriteAllText(Path.Combine(dir, "fromwindows.txt"), sb.ToString());
+                    await Task.Delay(1200);
+                    Save(editor, Path.Combine(dir, "fromwindows.png"));
+                }
+                catch (Exception ex) { File.WriteAllText(Path.Combine(dir, "error.txt"), ex.ToString()); }
+                app.Shutdown();
+            });
+            return;
+        }
         if (Environment.GetEnvironmentVariable("FUTURETRAY_CHECK") == "memory")
         {
             app.Dispatcher.BeginInvoke(async () =>

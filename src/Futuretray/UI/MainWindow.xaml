@@ -99,8 +99,12 @@
 
             <Grid Grid.Row="1" Margin="22,12,12,6">
                 <TextBlock Text="{ui:T 'Группы'}" Style="{StaticResource Text.Strong}" VerticalAlignment="Center"/>
-                <Button Style="{StaticResource Button.Icon}" Content="&#xE710;" HorizontalAlignment="Right" Width="32" Height="32"
-                        ToolTip="{ui:T 'Новая группа (Ctrl+N)'}" Click="NewGroup_Click"/>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <Button Style="{StaticResource Button.Icon}" Content="&#xE7C4;" Width="32" Height="32"
+                            ToolTip="{ui:T 'Группа из открытых окон: все открытые программы и где стоят их окна'}" Click="GroupFromWindows_Click"/>
+                    <Button Style="{StaticResource Button.Icon}" Content="&#xE710;" Width="32" Height="32"
+                            ToolTip="{ui:T 'Новая группа (Ctrl+N)'}" Click="NewGroup_Click"/>
+                </StackPanel>
             </Grid>
 
             <ListBox x:Name="GroupList" Grid.Row="2" Margin="10,0,10,0" ItemContainerStyle="{StaticResource NavItem}"
@@ -915,6 +919,9 @@
                                    Text="{ui:T 'Группа — это один значок на панели задач, который по клику раскрывает набор ваших программ, папок и сайтов.'}"/>
                         <Button Style="{StaticResource Button.Accent}" ui:Ui.Glyph="&#xE710;" Content="{ui:T 'Создать первую группу'}"
                                 HorizontalAlignment="Center" Margin="0,24,0,0" Padding="18,8" Click="NewGroup_Click"/>
+                        <Button ui:Ui.Glyph="&#xE7C4;" Content="{ui:T 'Собрать из открытых окон'}"
+                                HorizontalAlignment="Center" Margin="0,8,0,0" Padding="18,8" Click="GroupFromWindows_Click"
+                                ToolTip="{ui:T 'Все открытые программы — в одну группу, и сразу запомнить, где стоят их окна'}"/>
                         <Button Style="{StaticResource Button.Link}" Content="{ui:T 'Перенести группы из Taskbar Groups'}"
                                 HorizontalAlignment="Center" Margin="0,8,0,0" Click="ImportTaskbarGroups_Click"/>
                     </StackPanel>

@@ -44,6 +44,7 @@ In the popup: click to launch, **Ctrl+click** keeps it open, **Shift+click** or 
   The pinned icon updates by itself — no need to re-pin.
 - **Like the taskbar**: a dash under running apps, and clicking a running app switches to its window.
 - **Jump list**: right-click a pinned group to see its apps in the native Windows menu.
+- **Group from open windows**: every open app into a new group in one click, window layout included.
 - **Workspaces**: “Remember layout”, and “Open all” puts every window back in its place, across monitors. A separate layout for each monitor setup, launch order with delays, and opening a group when you sign in.
 - **Sync between computers**: keep groups in a OneDrive or Dropbox folder or on a network drive — the same on all your computers.
 - **What's new** after every update.

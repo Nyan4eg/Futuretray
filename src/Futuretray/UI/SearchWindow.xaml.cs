@@ -161,7 +161,7 @@ public partial class SearchWindow : Window
                     var app = AppIndex.AppName(w.Path);
                     int score = WindowScore(title, app, query);
                     if (score == 0) continue;
-                    if (WindowItem(w, app) is not { } item) continue;
+                    if (AppIndex.ItemForWindow(w, running) is not { } item) continue;
                     windows.Add(new SearchResult(SearchKind.Window, item, title,
                         Loc.F("Окно · {0}", app), score * 10000 - z, window: w.Handle));
                 }
@@ -194,27 +194,6 @@ public partial class SearchWindow : Window
         // Второй замер — после того как список пересоздал строки, иначе окно не уменьшается.
         Dispatcher.BeginInvoke(UpdateSize, DispatcherPriority.Loaded);
         Dispatcher.BeginInvoke(UpdateSize, DispatcherPriority.ContextIdle);
-    }
-
-    private readonly Dictionary<string, LaunchItem> _windowItems = new(StringComparer.OrdinalIgnoreCase);
-
-    /// <summary>
-    /// Что запускать и добавлять в группу для окна: обычную программу — по exe, приложение Store и окна,
-    /// которые рисует ApplicationFrameHost (Параметры и т. п.), — по AppUserModelID. Без того и другого — ничего.
-    /// Кэшируется: на каждое нажатие клавиши читать версию exe незачем.
-    /// </summary>
-    private LaunchItem? WindowItem(AppWindow w, string app)
-    {
-        var appId = w.AppId ?? w.ProcessAppId;
-        bool hosted = w.Path == null || w.Path.Contains(@"\WindowsApps\", StringComparison.OrdinalIgnoreCase) ||
-                      w.Path.EndsWith(@"\ApplicationFrameHost.exe", StringComparison.OrdinalIgnoreCase);
-        if (hosted && appId == null) return null;
-        var key = hosted ? "app|" + appId : "exe|" + w.Path;
-        if (!_windowItems.TryGetValue(key, out var item))
-            _windowItems[key] = item = hosted
-                ? new LaunchItem { Kind = ItemKind.ShellApp, Target = appId!, Name = app }
-                : ItemFactory.FromPath(w.Path!);
-        return item;
     }
 
     private static bool IsInGroups(InstalledApp app, List<LaunchItem> items) => items.Any(i =>

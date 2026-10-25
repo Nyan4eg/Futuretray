@@ -445,6 +445,11 @@ public partial class App : Application
     {
         var menu = new ContextMenu { Placement = System.Windows.Controls.Primitives.PlacementMode.MousePoint };
         menu.Items.Add(MenuItem("", Loc.T("Открыть Futuretray"), () => ShowEditor()));
+        menu.Items.Add(MenuItem("", Loc.T("Группа из открытых окон"), async () =>
+        {
+            ShowEditor();
+            if (_editor != null) await _editor.CreateGroupFromWindowsAsync();
+        }));
         var searchItem = MenuItem("", Loc.T("Поиск по группам"), ShowSearch);
         if (Core.Hotkey.TryParse(Store.Config.Settings.SearchHotkey, out var searchHotkey))
             searchItem.InputGestureText = searchHotkey.Display;

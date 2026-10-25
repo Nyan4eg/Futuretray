@@ -320,6 +320,40 @@ public partial class MainWindow : Window
         }, DispatcherPriority.Input);
     }
 
+    private async void GroupFromWindows_Click(object sender, RoutedEventArgs e) => await CreateGroupFromWindowsAsync();
+
+    /// <summary>
+    /// Группа из открытых окон: все программы, что сейчас открыты, — в новую группу, и сразу запомнить,
+    /// где стоят их окна. Рабочее пространство за одно нажатие.
+    /// </summary>
+    public async Task CreateGroupFromWindowsAsync()
+    {
+        ShowToast(Loc.T("Собираю открытые программы…"));
+        var items = await Workspaces.ItemsFromOpenWindows();
+        if (items.Count == 0)
+        {
+            ShowToast(Loc.T("Не нашлось открытых программ — откройте нужные и нажмите ещё раз"));
+            return;
+        }
+        var palette = ColorUtil.Palette.Skip(1).ToArray();
+        var group = new Group
+        {
+            Name = UniqueName(Loc.T("Рабочее пространство")),
+            Color = palette[Groups.Count % palette.Length],
+        };
+        foreach (var item in items) group.Items.Add(item);
+        Groups.Add(group);
+        var capture = Workspaces.Capture(group);
+        GroupList.SelectedItem = group;
+        ShowToast(Loc.F("Программ в группе: {0}, запомнено мест окон: {1}. Переименуйте группу и закрепите её на панели задач.",
+            items.Count, capture.Saved));
+        Dispatcher.BeginInvoke(() =>
+        {
+            GroupNameBox.Focus();
+            GroupNameBox.SelectAll();
+        }, DispatcherPriority.Input);
+    }
+
     private void Settings_Click(object sender, RoutedEventArgs e)
     {
         ShowView(View.Settings);

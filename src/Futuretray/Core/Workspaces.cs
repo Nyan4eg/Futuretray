@@ -232,6 +232,30 @@ public static class Workspaces
         session.Start();
     }
 
+    // ================= Группа из открытых окон =================
+
+    /// <summary>
+    /// Программы, чьи окна сейчас открыты на этом рабочем столе, — по одной на программу, в порядке
+    /// «с чем работали последним». Окна на других виртуальных рабочих столах не берём.
+    /// </summary>
+    public static async Task<List<LaunchItem>> ItemsFromOpenWindows()
+    {
+        await AppIndex.EnsureLoadedAsync();
+        var result = new List<LaunchItem>();
+        if (RunningApps.Current is not { } running) return result;
+        running.Refresh();
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var window in running.Windows)
+        {
+            if (Native.IsCloaked(window.Handle)) continue;
+            // Сам Futuretray (например, вторая копия или установленная рядом с портативной) группе не нужен.
+            if (Path.GetFileName(window.Path ?? "").StartsWith("Futuretray", StringComparison.OrdinalIgnoreCase)) continue;
+            if (AppIndex.ItemForWindow(window, running) is not { } item) continue;
+            if (seen.Add($"{item.Kind}|{item.Target}|{item.Arguments}")) result.Add(item.Clone());
+        }
+        return result;
+    }
+
     // ================= Закончить работу и режим фокуса =================
 
     /// <summary>Только для живой проверки: какие окна вообще можно трогать (чтобы не свернуть окна разработчика).</summary>
